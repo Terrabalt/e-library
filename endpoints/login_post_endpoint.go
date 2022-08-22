@@ -2,9 +2,12 @@ package endpoints
 
 import (
 	"errors"
+	"ic-rhadi/e_library/database"
 	"net/http"
 
+	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 )
 
 type loginPostRequest struct {
@@ -14,19 +17,40 @@ type loginPostRequest struct {
 
 func (l *loginPostRequest) Bind(r *http.Request) error {
 	if l.Username == "" || l.Password == "" {
-		return errors.New("bad request")
+		return errors.New("username or password missing")
 	}
 
 	return nil
 }
 
-func LoginPostEndpoint() http.HandlerFunc {
+type tokenResponse struct {
+	Token     string `json:"token"`
+	Scheme    string `json:"scheme"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+var ErrLoginFailed = errors.New("")
+
+func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-		//ctx := r.Context()
+		ctx := r.Context()
+
 		data := &loginPostRequest{}
 		if err := render.Bind(r, data); err != nil {
-			r.Response.StatusCode = http.StatusBadRequest
+			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt malformed")
+			render.Render(w, r, BadRequestError(err))
+			return
+		}
+
+		_, err := db.Login(ctx, data.Username, data.Password)
+		if err != nil {
+			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt failed")
+			if err == database.ErrAccountNotActive {
+				render.Render(w, r, ValidationFailedError(err))
+			} else {
+				render.Render(w, r, ValidationFailedError(ErrLoginFailed))
+			}
 			return
 		}
 	}

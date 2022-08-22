@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/endpoints"
 	"net/http"
 	"os"
@@ -8,16 +11,44 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/jwtauth"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func init() {
+func main() {
 	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
 	zerolog.TimeFieldFormat = time.RFC3339
-}
 
-func main() {
+	var jwtSecret string
+	var ok bool
+	if jwtSecret, ok = os.LookupEnv("JWTSECRET"); !ok {
+		log.Info().Msg("Enviroment keys not set up! Loading .env file..")
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal().Err(err).Caller().Msg("Error loading .env file")
+		}
+		jwtSecret = os.Getenv("JWTSECRET")
+	}
+
+	sessionAuth := jwtauth.New("HS256", []byte(jwtSecret), nil)
+	dbUrl := fmt.Sprintf("host=%s port=%s user=%s pass=%s dbname=%s sslmode=disable",
+		os.Getenv("PG_HOST"),
+		os.Getenv("PG_PORT"),
+		os.Getenv("PG_USER"),
+		os.Getenv("PG_PASS"),
+		os.Getenv("PG_PASS"),
+	)
+
+	db, err := database.StartDB(dbUrl)
+	if err != nil {
+		log.Panic().Err(err).Str("database link", dbUrl).Caller().Msg("Error starting database")
+	}
+	if err := db.InitDB(context.Background()); err != nil {
+		log.Panic().Err(err).Caller().Msg("Error initializing database")
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.CleanPath)
@@ -25,7 +56,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/login", endpoints.LoginPostEndpoint())
+		r.Post("/login", endpoints.LoginPostEndpoint(db, sessionAuth))
 		r.Post("/google", endpoints.LoginGoogleEndpoint())
 	})
 

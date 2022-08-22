@@ -4,9 +4,11 @@
 
 An implementation of the backend for the eLibrary project
 
-## Installation & Usage
+## Installation
 
 ``//TODO``
+
+## Usage
 
 ## Modules used:
 
