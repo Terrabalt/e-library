@@ -11,6 +11,7 @@ require (
 	github.com/go-chi/jwtauth v1.2.0
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.4.0
+	github.com/lestrrat-go/jwx v1.2.25
 	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8
 )
 
@@ -21,7 +22,6 @@ require (
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
-	github.com/lestrrat-go/jwx v1.2.25 // indirect
 	github.com/lestrrat-go/option v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 )

@@ -2,12 +2,14 @@ package endpoints
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"ic-rhadi/e_library/database"
 	"net/http"
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/rs/zerolog/log"
 )
 
@@ -31,7 +33,27 @@ type googleClaimsSchema struct {
 }
 
 func validateGoogleToken(ctx context.Context, token string) (*googleClaimsSchema, error) {
-	return nil, errors.New("endpoint not implemented")
+	tkn, err := jwt.ParseString(token, jwt.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	claims := &googleClaimsSchema{}
+	tknMap, err := tkn.AsMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	js, err := json.Marshal(tknMap)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(js, claims)
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, errors.New("endpoint not implemented")
 }
 
 func LoginGoogleEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
