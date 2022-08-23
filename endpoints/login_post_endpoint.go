@@ -23,13 +23,7 @@ func (l *loginPostRequest) Bind(r *http.Request) error {
 	return nil
 }
 
-type tokenResponse struct {
-	Token     string `json:"token"`
-	Scheme    string `json:"scheme"`
-	ExpiresAt string `json:"expires_at"`
-}
-
-var ErrLoginFailed = errors.New("")
+var ErrLoginFailed = errors.New("login failed")
 
 func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +37,7 @@ func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.Handle
 			return
 		}
 
-		_, err := db.Login(ctx, data.Username, data.Password)
+		session, err := db.Login(ctx, data.Username, data.Password)
 		if err != nil {
 			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt failed")
 			if err == database.ErrAccountNotActive {
@@ -53,5 +47,7 @@ func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.Handle
 			}
 			return
 		}
+
+		sendNewToken(sessionAuth, tokenClaimsSchema{data.Username, session}, w, r)
 	}
 }
