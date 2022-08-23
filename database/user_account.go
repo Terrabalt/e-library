@@ -29,7 +29,7 @@ func init() {
 				email = $1`,
 		},
 		DBStatement{
-			&loginStmt, `
+			&loginRefreshStmt, `
 			INSERT INTO user_devices (
 				user_id, verifier, expires_in
 			)
@@ -74,8 +74,8 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGo
 		if !hash.Valid {
 			return "", ErrAccountNotActive
 		}
-	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
-		return "", err
+		if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
+			return "", err
 		}
 	}
 

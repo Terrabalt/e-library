@@ -33,12 +33,12 @@ func main() {
 	}
 
 	sessionAuth := jwtauth.New("HS256", []byte(jwtSecret), nil)
-	dbUrl := fmt.Sprintf("host=%s port=%s user=%s pass=%s dbname=%s sslmode=disable",
+	dbUrl := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("PG_HOST"),
 		os.Getenv("PG_PORT"),
 		os.Getenv("PG_USER"),
 		os.Getenv("PG_PASS"),
-		os.Getenv("PG_PASS"),
+		os.Getenv("PG_DB"),
 	)
 
 	db, err := database.StartDB(dbUrl)

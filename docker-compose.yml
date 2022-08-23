@@ -1,6 +1,6 @@
 version: "3"
 services:
-  news-service:
+  library-service:
     image: golang:1.18
     restart: on-failure:5
     volumes:
@@ -9,7 +9,7 @@ services:
     command:
      - /bin/bash
      - -c
-     - go run ./cmd/main.go
+     - go run ./main.go
     ports:
      - "3000:3000/tcp"
     environment:
@@ -37,7 +37,7 @@ services:
       default:
         aliases:
           - adminer2
-  news-postgres:
+  library-postgres:
     image: postgres:14-alpine
     restart: on-failure:5
     volumes:
