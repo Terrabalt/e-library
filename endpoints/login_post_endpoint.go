@@ -37,7 +37,7 @@ func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.Handle
 			return
 		}
 
-		session, err := db.Login(ctx, data.Username, data.Password)
+		session, err := db.Login(ctx, data.Username, data.Password, false)
 		if err != nil {
 			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt failed")
 			if err == database.ErrAccountNotActive {

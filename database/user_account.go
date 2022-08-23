@@ -11,7 +11,7 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string) (id string, err error)
+	Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error)
 }
 
 var loginStmt *sql.Stmt
@@ -22,7 +22,7 @@ func init() {
 		DBStatement{
 			&loginStmt, `
 			SELECT 
-				password, activated
+				password, g_id, activated
 			FROM 
 				user_account 
 			WHERE 
@@ -41,10 +41,11 @@ func init() {
 
 var ErrAccountNotActive error = errors.New("account not activated")
 var ErrAccountNotFound error = errors.New("account not found")
+var ErrWrongId error = errors.New("google account id invalid")
 
 /// Logs the user in, and returns a new identifier with it
-func (db DBInstance) Login(ctx context.Context, email string, pass string) (id string, err error) {
-	var hash sql.NullString
+func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
+	var hash, gid sql.NullString
 	var activated bool
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -54,16 +55,28 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (id s
 	defer tx.Rollback()
 
 	cursor := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
-	if err := cursor.Scan(&hash, &activated); err != nil {
+	if err := cursor.Scan(&hash, &gid, &activated); err != nil {
 		return "", err
 	}
 
-	if !activated || !hash.Valid {
+	if !activated {
 		return "", ErrAccountNotActive
 	}
 
+	if viaGoogle {
+		if !gid.Valid {
+			return "", ErrAccountNotActive
+		}
+		if gid.String != pass {
+			return "", ErrWrongId
+		}
+	} else {
+		if !hash.Valid {
+			return "", ErrAccountNotActive
+		}
 	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
 		return "", err
+		}
 	}
 
 	verifier := uuid.NewString()

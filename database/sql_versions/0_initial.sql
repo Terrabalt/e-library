@@ -1,6 +1,7 @@
 CREATE TABLE user_account (
 	email varchar(255) NOT NULL,
 	password varchar(60),
+	g_id text,
 	activated BOOLEAN NOT NULL DEFAULT 'false',
 	name varchar(255) NOT NULL,
 	CONSTRAINT user_account_pk PRIMARY KEY (email)
