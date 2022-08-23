@@ -57,7 +57,7 @@ func main() {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPostEndpoint(db, sessionAuth))
-		r.Post("/google", endpoints.LoginGoogleEndpoint())
+		r.Post("/google", endpoints.LoginGoogleEndpoint(db, sessionAuth))
 	})
 
 	port := os.Getenv("PORT")
