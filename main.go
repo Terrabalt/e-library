@@ -49,6 +49,12 @@ func main() {
 		log.Panic().Err(err).Caller().Msg("Error initializing database")
 	}
 
+	gValidator, err := endpoints.NewGValidator(context.Background())
+	if err != nil {
+		log.Panic().Err(err).Msg("Google token validator failed to initialize")
+		return
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.CleanPath)
@@ -57,7 +63,7 @@ func main() {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPostEndpoint(db, sessionAuth))
-		r.Post("/google", endpoints.LoginGoogleEndpoint(db, sessionAuth))
+		r.Post("/google", endpoints.LoginGoogleEndpoint(db, sessionAuth, gValidator))
 	})
 
 	port := os.Getenv("PORT")
