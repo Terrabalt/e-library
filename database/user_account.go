@@ -44,7 +44,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 
 /// Logs the user in, and returns a new identifier with it
 func (db DBInstance) Login(ctx context.Context, email string, pass string) (id string, err error) {
-	var hash string
+	var hash sql.NullString
 	var activated bool
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -58,11 +58,11 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (id s
 		return "", err
 	}
 
-	if !activated {
+	if !activated || !hash.Valid {
 		return "", ErrAccountNotActive
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
 		return "", err
 	}
 
