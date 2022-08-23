@@ -6,9 +6,47 @@ An implementation of the backend for the eLibrary project
 
 ## Installation
 
-``//TODO``
+The easiest way to deploy the API from the ground up is to use:
+```cmd
+docker-compose up
+```
 
 ## Usage
+
+### /auth/login:
+
+body - 
+```json
+{
+    "username": "username",
+    "password": "password"
+}
+```
+response -
+```json
+{
+    "token": "a.b.c",
+    "scheme": "Bearer",
+    "expires_at": "28-07-2010T12:17:27+09"
+}
+```
+
+### /auth/google:
+
+body - 
+```json
+{
+    "token": "aa.bb.cc",
+}
+```
+response -
+```json
+{
+    "token": "a.b.c",
+    "scheme": "Bearer",
+    "expires_at": "28-07-2010T12:17:27+09"
+}
+```
 
 ## Modules used:
 
