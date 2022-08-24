@@ -79,3 +79,8 @@ response -
 
 [![Go reference](https://pkg.go.dev/badge/github.com/rs/zerolog@v1.26.1.svg)](https://pkg.go.dev/github.com/rs/zerolog@v1.26.1)
 ``zerolog``, for JSON structured logger
+
+### Testing
+
+[![Go reference](https://pkg.go.dev/badge/github.com/stretchr/testify@v1.8.0.svg)](https://pkg.go.dev/github.com/stretchr/testify@v1.8.0)
+``testify``, for cleaner unit testing assertions

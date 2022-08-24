@@ -25,7 +25,7 @@ func (l *loginPostRequest) Bind(r *http.Request) error {
 
 var ErrLoginFailed = errors.New("login failed")
 
-func LoginPostEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
+func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()

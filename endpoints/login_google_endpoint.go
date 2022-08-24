@@ -22,7 +22,7 @@ func (l *loginGoogleRequest) Bind(r *http.Request) error {
 	return nil
 }
 
-func LoginGoogleEndpoint(db database.DB, sessionAuth *jwtauth.JWTAuth, gValidator gTokenValidator) http.HandlerFunc {
+func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator gTokenValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()
