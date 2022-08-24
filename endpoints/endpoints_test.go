@@ -16,11 +16,13 @@ import (
 )
 
 var expId = struct {
-	Account string
-	Session string
+	Account  string
+	Session  string
+	GAccount string
 }{
 	"123456778-9abc-def0@1234.56789abcdef0",
 	"12345678-9abc-def0-1234-56789abcdef0",
+	"123456789abcdef0123456789abcdef0",
 }
 
 type param struct {
@@ -88,4 +90,16 @@ type DBMock struct {
 func (db DBMock) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
 	args := db.Called(email, pass, viaGoogle)
 	return args.String(0), args.Error(1)
+}
+
+type gTokenValidatorMock struct {
+	mock.Mock
+}
+
+func (g gTokenValidatorMock) validateGToken(ctx context.Context, token string) (*googleClaimsSchema, error) {
+	args := g.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*googleClaimsSchema), args.Error(1)
 }

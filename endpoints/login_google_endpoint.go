@@ -16,11 +16,13 @@ type loginGoogleRequest struct {
 
 func (l *loginGoogleRequest) Bind(r *http.Request) error {
 	if l.GoogleToken == "" {
-		return errors.New("token missing")
+		return errLoginGoogleMalformed
 	}
 
 	return nil
 }
+
+var errLoginGoogleMalformed = errors.New("token missing")
 
 func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator gTokenValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +38,7 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 		sch, err := gValidator.validateGToken(ctx, data.GoogleToken)
 		if err != nil {
 			log.Debug().Err(err).Str("token", data.GoogleToken).Msg("Google token validation failed")
-			render.Render(w, r, ValidationFailedError(err))
+			render.Render(w, r, ValidationFailedError(ErrLoginFailed))
 			return
 		}
 
@@ -44,7 +46,7 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 		if err != nil {
 			log.Debug().Err(err).Str("username", sch.Email).Msg("Login attempt failed")
 			if err == database.ErrAccountNotActive {
-				render.Render(w, r, ValidationFailedError(err))
+				render.Render(w, r, UnauthorizedRequestError(err))
 			} else {
 				render.Render(w, r, ValidationFailedError(ErrLoginFailed))
 			}
