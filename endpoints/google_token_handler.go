@@ -56,5 +56,5 @@ func (v *gTokenValidatorInst) validateGToken(ctx context.Context, token string) 
 		return nil, errGoogleEmailUnverified
 	}
 
-	return claims, errors.New("endpoint not implemented")
+	return claims, nil
 }
