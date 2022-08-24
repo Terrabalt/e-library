@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -42,6 +43,7 @@ func init() {
 var ErrAccountNotActive error = errors.New("account not activated")
 var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongId error = errors.New("google account id invalid")
+var ErrWrongPass error = errors.New("account password invalid")
 
 /// Logs the user in, and returns a new identifier with it
 func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
@@ -56,7 +58,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGo
 
 	cursor := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
 	if err := cursor.Scan(&hash, &gid, &activated); err != nil {
-		return "", err
+		return "", ErrAccountNotFound
 	}
 
 	if !activated {
@@ -75,7 +77,8 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGo
 			return "", ErrAccountNotActive
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
-			return "", err
+			log.Debug().Caller().Err(err).Msg("Error when comparing password to hash")
+			return "", ErrWrongPass
 		}
 	}
 

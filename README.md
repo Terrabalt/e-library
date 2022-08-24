@@ -96,3 +96,6 @@ response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 
 [![Go reference](https://pkg.go.dev/badge/github.com/stretchr/testify@v1.8.0.svg)](https://pkg.go.dev/github.com/stretchr/testify@v1.8.0)
 ``testify``, for cleaner unit testing assertions
+
+[![Go reference](https://pkg.go.dev/badge/github.com/DATA-DOG/go-sqlmock@v1.5.0.svg)](https://pkg.go.dev/github.com/DATA-DOG/go-sqlmock@v1.5.0)
+``go-sqlmock``, for mocking an ``*sql.SQL`` object in unit testing
