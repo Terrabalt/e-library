@@ -22,12 +22,18 @@ body -
     "password": "password"
 }
 ```
-response -
+response - 200 OK
 ```json
 {
     "token": "a.b.c",
     "scheme": "Bearer",
     "expires_at": "28-07-2010T12:17:27+09"
+}
+```
+response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
+```json
+{
+    "message": "error-message"
 }
 ```
 
@@ -39,12 +45,18 @@ body -
     "token": "aa.bb.cc",
 }
 ```
-response -
+response - 200 OK
 ```json
 {
     "token": "a.b.c",
     "scheme": "Bearer",
     "expires_at": "28-07-2010T12:17:27+09"
+}
+```
+response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
+```json
+{
+    "message": "error-message"
 }
 ```
 
