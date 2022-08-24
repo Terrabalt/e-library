@@ -29,15 +29,15 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
-	assert.Equal(t, expCode, w.Code, "A malformed Post-Login didn't return the proper response code")
+	assert.Equal(t, expCode, w.Code, "A successful Post-Login didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Post-Login didn't return a valid tokenResponse object")
 	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
 	assert.NoError(t, err, "A successful Post-Login didn't return a valid token")
 
 	email, _ := token.Get("email")
-	assert.Equal(t, expId.Account, email, "A successful Login didn't return expected id")
 	session, _ := token.Get("session")
-	assert.Equal(t, expId.Session, session, "A successful Login didn't return expected username")
+	assert.Equal(t, expId.Account, email, "A successful Post-Login didn't return expected email")
+	assert.Equal(t, expId.Session, session, "A successful Post-Login didn't return expected session id")
 	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
 }
 
