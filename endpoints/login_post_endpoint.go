@@ -17,13 +17,14 @@ type loginPostRequest struct {
 
 func (l *loginPostRequest) Bind(r *http.Request) error {
 	if l.Username == "" || l.Password == "" {
-		return errors.New("username or password missing")
+		return errLoginPostMalformed
 	}
 
 	return nil
 }
 
 var ErrLoginFailed = errors.New("login failed")
+var errLoginPostMalformed = errors.New("username or password missing")
 
 func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
