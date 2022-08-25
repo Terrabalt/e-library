@@ -86,6 +86,9 @@ response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 [![Go Reference](https://pkg.go.dev/badge/github.com/lib/pq@v1.10.6.svg)](https://pkg.go.dev/github.com//lib/pq@v1.10.6)
 ``pq``, for connecting to PostgreSQL server 
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/sethvargo/go-envconfig@v0.8.2.svg)](https://pkg.go.dev/github.com/sethvargo/go-envconfig@v0.8.2)
+``sethvargo/go-envconfig``, for structured env vars
+
 [![Go reference](https://pkg.go.dev/badge/github.com/simukti/sqldb-logger@v0.0.0-20220521163925-faf2f2be0eb6.svg)](https://pkg.go.dev/github.com/simukti/sqldb-logger@v0.0.0-20220521163925-faf2f2be0eb6)
 ``sqldb-logger``, for SQL logging
 

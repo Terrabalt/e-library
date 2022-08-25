@@ -7,7 +7,7 @@ import (
 	"ic-rhadi/e_library/endpoints"
 	"ic-rhadi/e_library/googlehelper"
 	"net/http"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -16,39 +16,39 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/sethvargo/go-envconfig"
 )
 
-type config struct {
-	jwtsecret string
-	pgHost    string
-	pgPort    string
-	pgUser    string
-	pgPass    string
-	pgDB      string
+type Config struct {
+	JWTSecret string `env:"JWTSECRET"`
+	PgHost    string `env:"PG_HOST"`
+	PgPort    int    `env:"PG_PORT"`
+	PgUser    string `env:"PG_USER"`
+	PgPass    string `env:"PG_PASS"`
+	PgDB      string `env:"PG_DB"`
+	Port      int    `env:"PORT,required"`
 }
 
 func main() {
 	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
 	zerolog.TimeFieldFormat = time.RFC3339
 
-	var jwtSecret string
-	var ok bool
-	if jwtSecret, ok = os.LookupEnv("JWTSECRET"); !ok {
-		log.Info().Msg("Enviroment keys not set up! Loading .env file..")
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal().Err(err).Caller().Msg("Error loading .env file")
-		}
-		jwtSecret = os.Getenv("JWTSECRET")
+	if err := godotenv.Load(); err != nil {
+		log.Fatal().Err(err).Caller().Msg("Error loading .env file")
 	}
 
-	sessionAuth := jwtauth.New("HS256", []byte(jwtSecret), nil)
-	dbUrl := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("PG_HOST"),
-		os.Getenv("PG_PORT"),
-		os.Getenv("PG_USER"),
-		os.Getenv("PG_PASS"),
-		os.Getenv("PG_DB"),
+	var config Config
+	if err := envconfig.Process(context.Background(), &config); err != nil {
+		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
+	}
+
+	sessionAuth := jwtauth.New("HS256", []byte(config.JWTSecret), nil)
+	dbUrl := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		config.PgHost,
+		config.PgPort,
+		config.PgUser,
+		config.PgPass,
+		config.PgDB,
 	)
 
 	db, err := database.StartDB(dbUrl)
@@ -76,10 +76,6 @@ func main() {
 		r.Post("/google", endpoints.LoginGoogleEndpoint(db, sessionAuth, gValidator))
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "80"
-	}
-	log.Info().Str("Server port", port).Msg("Server started")
-	log.Info().Err(http.ListenAndServe(":"+port, r)).Msg("Server stopped")
+	log.Info().Int("Server port", config.Port).Msg("Server started")
+	log.Info().Err(http.ListenAndServe(":"+strconv.Itoa(config.Port), r)).Msg("Server stopped")
 }
