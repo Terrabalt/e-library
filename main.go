@@ -78,4 +78,5 @@ func main() {
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
 	log.Info().Err(http.ListenAndServe(":"+strconv.Itoa(config.Port), r)).Msg("Server stopped")
+	db.CloseDB()
 }

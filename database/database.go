@@ -95,4 +95,5 @@ func (db DBInstance) CloseDB() {
 			log.Error().Err(err).Msg("error closing db")
 		}
 	}
+	db.Close()
 }
