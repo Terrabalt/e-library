@@ -50,8 +50,8 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	session, _ := token.Get("session")
 	assert.Equal(t, expId.Account, email, "A successful Google-Login didn't return expected email")
 	assert.Equal(t, expId.Session, session, "A successful Google-Login didn't return expected session id")
-	assert.True(t, gValidatorMock.AssertExpectations(t), "The test has unfulfilled expectation")
-	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
+	gValidatorMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
 }
 
 func TestMalformedLoginGoogle(t *testing.T) {
@@ -77,8 +77,8 @@ func TestMalformedLoginGoogle(t *testing.T) {
 	assert.Equal(t, expCode, w.Code, "A malformed Google-Login didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Google-Login didn't return a valid errorResponse object")
 	assert.Equal(t, expResp, *resp, "A malformed Google-Login didn't return the proper error")
-	assert.True(t, gValidatorMock.AssertExpectations(t), "The test has unfulfilled expectation")
-	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
+	gValidatorMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
 }
 func TestFailedLoginGoogle(t *testing.T) {
 
@@ -113,8 +113,8 @@ func TestFailedLoginGoogle(t *testing.T) {
 	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object")
 	assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
-	assert.True(t, gValidatorMock.AssertExpectations(t), "The test has unfulfilled expectation")
-	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
+	gValidatorMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
 
 	gValidatorMock.On("validateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
@@ -131,8 +131,8 @@ func TestFailedLoginGoogle(t *testing.T) {
 	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object")
 	assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
-	assert.True(t, gValidatorMock.AssertExpectations(t), "The test has unfulfilled expectation")
-	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
+	gValidatorMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
 }
 
 func TestNotActivatedLoginGoogle(t *testing.T) {
@@ -169,6 +169,6 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 	assert.Equal(t, expCode, w.Code, "A Google-Login on a not activated account didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A Google-Login on a not activated account didn't return a valid errorResponse object")
 	assert.Equal(t, expResp, *resp, "A Google-Login on a not activated account didn't return the proper error")
-	assert.True(t, gValidatorMock.AssertExpectations(t), "The test has unfulfilled expectation")
-	assert.True(t, dbMock.AssertExpectations(t), "The test has unfulfilled expectation")
+	gValidatorMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
 }
