@@ -67,7 +67,7 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 			},
 		)
 		if err != nil {
-			log.Error().Err(err).Caller().Msg("Error encoding new token")
+			log.Error().Err(err).Msg("Error encoding new token")
 			render.Render(w, r, InternalServerError())
 			return
 		}

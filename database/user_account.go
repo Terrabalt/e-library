@@ -81,7 +81,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (id s
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
-		log.Debug().Caller().Err(err).Msg("Error when comparing password to hash")
+		log.Debug().Err(err).Msg("Error when comparing password to hash")
 		return "", ErrWrongPass
 	}
 

@@ -30,11 +30,11 @@ type Config struct {
 }
 
 func main() {
-	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
+	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Caller().Logger()
 	zerolog.TimeFieldFormat = time.RFC3339
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatal().Err(err).Caller().Msg("Error loading .env file")
+		log.Fatal().Err(err).Msg("Error loading .env file")
 	}
 
 	var config Config
@@ -53,10 +53,10 @@ func main() {
 
 	db, err := database.StartDB(dbUrl)
 	if err != nil {
-		log.Panic().Err(err).Str("database link", dbUrl).Caller().Msg("Error starting database")
+		log.Panic().Err(err).Str("database link", dbUrl).Msg("Error starting database")
 	}
 	if err := db.InitDB(context.Background()); err != nil {
-		log.Panic().Err(err).Caller().Msg("Error initializing database")
+		log.Panic().Err(err).Msg("Error initializing database")
 	}
 
 	gValidator, err := googlehelper.NewGValidator(context.Background())
