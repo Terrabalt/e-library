@@ -88,6 +88,13 @@ func RegisterPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth
 			return
 		}
 
-		SendActivationEmail(w, r, activationToken, *validUntil)
+		if err := SendActivationEmail(w, r, data.Email, activationToken, *validUntil); err != nil {
+			log.Debug().Err(err).Str("email", data.Email).Str("Activation Token", activationToken).Msg("Registering failed")
+			render.Render(w, r, InternalServerError())
+			return
+		}
+
+		r.Response.StatusCode = http.StatusCreated
+
 	}
 }
