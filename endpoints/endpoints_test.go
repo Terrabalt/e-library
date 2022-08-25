@@ -88,8 +88,13 @@ type dBMock struct {
 	mock.Mock
 }
 
-func (db dBMock) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
-	args := db.Called(email, pass, viaGoogle)
+func (db dBMock) Login(ctx context.Context, email string, pass string) (id string, err error) {
+	args := db.Called(email, pass)
+	return args.String(0), args.Error(1)
+}
+
+func (db dBMock) LoginGoogle(ctx context.Context, g_id string, pass string) (id string, err error) {
+	args := db.Called(g_id, pass)
 	return args.String(0), args.Error(1)
 }
 

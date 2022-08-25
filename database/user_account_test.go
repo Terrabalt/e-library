@@ -40,6 +40,7 @@ func (tu *testUUID) Match(value driver.Value) bool {
 
 const expEmail = "a@b.c"
 const expPassword = "password"
+const expGId = "abcdefgh-ijkl"
 
 func TestSuccessfulLogin(t *testing.T) {
 	ctx := context.Background()
@@ -54,8 +55,8 @@ func TestSuccessfulLogin(t *testing.T) {
 	require.NoErrorf(t, err, "an error '%s' was not expected when creating a mock hashed password", err)
 
 	var rowsPost = sqlmock.
-		NewRows([]string{"password", "g_id", "activated"}).
-		AddRow(hashPass, nil, true)
+		NewRows([]string{"password", "activated"}).
+		AddRow(hashPass, true)
 
 	test1 := mock.ExpectPrepare("SELECT")
 	test2 := mock.ExpectPrepare("INSERT")
@@ -72,7 +73,7 @@ func TestSuccessfulLogin(t *testing.T) {
 
 	loginStmt, err = d.Prepare(`
 		SELECT 
-			password, g_id, activated
+			password, activated
 		FROM 
 			user_account 
 		WHERE 
@@ -86,26 +87,7 @@ func TestSuccessfulLogin(t *testing.T) {
 			VALUES
 				($1, $2, $3)`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
-	id, err := db.Login(ctx, expEmail, expPassword, false)
-	assert.Nil(t, err, "unexpected error in a successful login test")
-	assert.Equal(t, tu.uuid, id, "function should've returned a new session id")
-	assert.Nil(t, mock.ExpectationsWereMet())
-
-	var rowsGoogle = sqlmock.
-		NewRows([]string{"password", "g_id", "activated"}).
-		AddRow(nil, expPassword, true)
-
-	mock.ExpectBegin()
-	test1.ExpectQuery().
-		WithArgs(expEmail).
-		WillReturnRows(rowsGoogle).
-		RowsWillBeClosed()
-	test2.ExpectExec().
-		WithArgs(expEmail, tu, sqlmock.AnyArg()).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectCommit()
-
-	id, err = db.Login(ctx, expEmail, expPassword, true)
+	id, err := db.Login(ctx, expEmail, expPassword)
 	assert.Nil(t, err, "unexpected error in a successful login test")
 	assert.Equal(t, tu.uuid, id, "function should've returned a new session id")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -128,16 +110,16 @@ func TestNotFoundLogin(t *testing.T) {
 
 	loginStmt, err = d.Prepare(`
 		SELECT 
-			password, g_id, activated
+			password, activated
 		FROM 
 			user_account 
 		WHERE 
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword, false)
+	id, err := db.Login(ctx, expEmail, expPassword)
 	assert.Empty(t, id, "unexpected output in a failed login test")
-	assert.Equal(t, err, ErrAccountNotFound, "function should've returned an ErrAccountNotFound error")
+	assert.Equal(t, ErrAccountNotFound, err, "function should've returned an ErrAccountNotFound error")
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
 
@@ -154,8 +136,8 @@ func TestNotActiveLogin(t *testing.T) {
 	require.NoErrorf(t, err, "an error '%s' was not expected when creating a mock hashed password", err)
 
 	var rows = sqlmock.
-		NewRows([]string{"password", "g_id", "activated"}).
-		AddRow(hashPass, nil, false)
+		NewRows([]string{"password", "activated"}).
+		AddRow(hashPass, false)
 
 	test1 := mock.ExpectPrepare("SELECT")
 	mock.ExpectBegin()
@@ -167,14 +149,14 @@ func TestNotActiveLogin(t *testing.T) {
 
 	loginStmt, err = d.Prepare(`
 		SELECT 
-			password, g_id, activated
+			password, activated
 		FROM 
 			user_account 
 		WHERE 
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword, false)
+	id, err := db.Login(ctx, expEmail, expPassword)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrAccountNotActive, err, "function should've returned ErrAccountNotActive error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -193,8 +175,8 @@ func TestFailedLogins(t *testing.T) {
 	require.NoErrorf(t, err, "an error '%s' was not expected when creating a mock hashed password", err)
 
 	var rowsPost = sqlmock.
-		NewRows([]string{"password", "g_id", "activated"}).
-		AddRow(hashPass, nil, true)
+		NewRows([]string{"password", "activated"}).
+		AddRow(hashPass, true)
 
 	test1 := mock.ExpectPrepare("SELECT")
 	mock.ExpectBegin()
@@ -206,31 +188,166 @@ func TestFailedLogins(t *testing.T) {
 
 	loginStmt, err = d.Prepare(`
 		SELECT 
-			password, g_id, activated
+			password, activated
 		FROM 
 			user_account 
 		WHERE 
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword, false)
+	id, err := db.Login(ctx, expEmail, expPassword)
 	assert.Empty(t, id, "unexpected output in a failed login test")
-	assert.Equal(t, err, ErrWrongPass, "function should've returned ErrWrongPass error")
+	assert.Equal(t, ErrWrongPass, err, "function should've returned ErrWrongPass error")
 	assert.Nil(t, mock.ExpectationsWereMet())
+}
 
-	var rowsGoogle = sqlmock.
-		NewRows([]string{"password", "g_id", "activated"}).
-		AddRow(nil, expPassword[1:], true)
+func TestSuccessfulLoginGoogle(t *testing.T) {
+	ctx := context.Background()
 
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+
+	db := DBInstance{d}
+
+	var rowsPost = sqlmock.
+		NewRows([]string{"g_id", "activated"}).
+		AddRow(expGId, true)
+
+	test1 := mock.ExpectPrepare("SELECT")
+	test2 := mock.ExpectPrepare("INSERT")
 	mock.ExpectBegin()
 	test1.ExpectQuery().
 		WithArgs(expEmail).
-		WillReturnRows(rowsGoogle).
+		WillReturnRows(rowsPost).
+		RowsWillBeClosed()
+	tu := &testUUID{}
+	test2.ExpectExec().
+		WithArgs(expEmail, tu, sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	loginGoogleStmt, err = d.Prepare(`
+		SELECT 
+			g_id, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	loginRefreshStmt, err = d.Prepare(`
+			INSERT INTO user_devices (
+				user_id, verifier, expires_in
+			)
+			VALUES
+				($1, $2, $3)`)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	assert.Nil(t, err, "unexpected error in a successful login test")
+	assert.Equal(t, tu.uuid, id, "function should've returned a new session id")
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestNotFoundLoginGoogle(t *testing.T) {
+	ctx := context.Background()
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+
+	db := DBInstance{d}
+
+	test1 := mock.ExpectPrepare("SELECT")
+	mock.ExpectBegin()
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	loginGoogleStmt, err = d.Prepare(`
+		SELECT 
+			g_id, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	assert.Empty(t, id, "unexpected output in a failed login test")
+	assert.Equal(t, ErrAccountNotFound, err, "function should've returned an ErrAccountNotFound error")
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestNotActiveLoginGoogle(t *testing.T) {
+	ctx := context.Background()
+
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+
+	db := DBInstance{d}
+
+	var rows = sqlmock.
+		NewRows([]string{"g_id", "activated"}).
+		AddRow(expGId, false)
+
+	test1 := mock.ExpectPrepare("SELECT")
+	mock.ExpectBegin()
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnRows(rows).
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	id, err = db.Login(ctx, expEmail, expPassword, true)
+	loginGoogleStmt, err = d.Prepare(`
+		SELECT 
+			g_id, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	id, err := db.LoginGoogle(ctx, expEmail, expGId)
 	assert.Empty(t, id, "unexpected output in a failed login test")
-	assert.Equal(t, ErrWrongId, err, "function should've returned ErrWrongId error")
+	assert.Equal(t, ErrAccountNotActive, err, "function should've returned ErrAccountNotActive error")
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestFailedLoginsGoogle(t *testing.T) {
+	ctx := context.Background()
+
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+
+	db := DBInstance{d}
+
+	var rowsPost = sqlmock.
+		NewRows([]string{"g_id", "activated"}).
+		AddRow(expGId[1:], true)
+
+	test1 := mock.ExpectPrepare("SELECT")
+	mock.ExpectBegin()
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnRows(rowsPost).
+		RowsWillBeClosed()
+	mock.ExpectRollback()
+
+	loginGoogleStmt, err = d.Prepare(`
+		SELECT 
+			g_id, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	assert.Empty(t, id, "unexpected output in a failed login test")
+	assert.Equal(t, ErrWrongId, err, "function should've returned ErrWrongPass error")
 	assert.Nil(t, mock.ExpectationsWereMet())
 }

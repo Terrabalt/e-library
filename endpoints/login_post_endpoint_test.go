@@ -19,7 +19,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password).
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
@@ -34,7 +34,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
 	assert.NoError(t, err, "A successful Post-Login didn't return a valid token")
 
-	email, _ := token.Get("email")
+	email, _ := token.Get("sub")
 	session, _ := token.Get("session")
 	assert.Equal(t, expId.Account, email, "A successful Post-Login didn't return expected email")
 	assert.Equal(t, expId.Session, session, "A successful Post-Login didn't return expected session id")
@@ -75,7 +75,7 @@ func TestFailedLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password).
 		Return("", database.ErrAccountNotFound).Once()
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
@@ -102,7 +102,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(database.ErrAccountNotActive).(*ErrorResponse).

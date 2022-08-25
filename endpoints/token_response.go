@@ -2,7 +2,6 @@ package endpoints
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -40,8 +39,6 @@ func (token tokenResponse) Render(w http.ResponseWriter, r *http.Request) error 
 	w.Header().Set("content-type", "application/json")
 	return nil
 }
-
-var errTokenCreationFailed = errors.New("token creation failed")
 
 func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema) (token jwt.Token, tokenString string, err error) {
 	c, err := claims.toInterface()

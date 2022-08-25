@@ -27,11 +27,11 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	}
 
 	gValidatorMock := &gTokenValidatorMock{}
-	gValidatorMock.On("validateGToken", login.GoogleToken).
+	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", expGClaims.Email, expGClaims.AccountId, true).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
@@ -46,7 +46,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
 	assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
 
-	email, _ := token.Get("email")
+	email, _ := token.Get("sub")
 	session, _ := token.Get("session")
 	assert.Equal(t, expId.Account, email, "A successful Google-Login didn't return expected email")
 	assert.Equal(t, expId.Session, session, "A successful Google-Login didn't return expected session id")
@@ -96,7 +96,7 @@ func TestFailedLoginGoogle(t *testing.T) {
 	}
 
 	gValidatorMock := &gTokenValidatorMock{}
-	gValidatorMock.On("validateGToken", login.GoogleToken).
+	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(nil, errors.New("password wrong, should be xxxxx")).Once()
 
 	dbMock := &dBMock{}
@@ -116,10 +116,10 @@ func TestFailedLoginGoogle(t *testing.T) {
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 
-	gValidatorMock.On("validateGToken", login.GoogleToken).
+	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock.On("Login", expGClaims.Email, expGClaims.AccountId, true).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
 		Return("", database.ErrAccountNotFound).Once()
 
 	r, w = mockRequest(t, path, login, false)
@@ -150,11 +150,11 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 	}
 
 	gValidatorMock := &gTokenValidatorMock{}
-	gValidatorMock.On("validateGToken", login.GoogleToken).
+	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", expGClaims.Email, expGClaims.AccountId, true).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(database.ErrAccountNotActive).(*ErrorResponse).

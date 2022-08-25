@@ -44,7 +44,7 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 			return
 		}
 
-		session, err := db.Login(ctx, gClaims.Email, gClaims.AccountId, true)
+		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountId)
 		if err != nil {
 			log.Debug().Err(err).Str("username", gClaims.Email).Msg("Login attempt failed")
 			if err == database.ErrAccountNotActive {
