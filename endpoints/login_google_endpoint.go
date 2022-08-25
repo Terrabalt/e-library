@@ -12,7 +12,7 @@ import (
 )
 
 type loginGoogleRequest struct {
-	GoogleToken string `json:"token"` // User login ID.
+	GoogleToken string `json:"token"`
 }
 
 func (l *loginGoogleRequest) Bind(r *http.Request) error {

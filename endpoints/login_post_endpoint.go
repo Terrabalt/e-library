@@ -11,8 +11,8 @@ import (
 )
 
 type loginPostRequest struct {
-	Email    string `json:"email"`    // User login ID.
-	Password string `json:"password"` // Password to verify.
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (l *loginPostRequest) Bind(r *http.Request) error {

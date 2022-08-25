@@ -7,9 +7,9 @@ import (
 )
 
 type ErrorResponse struct {
-	err            error  `json:"-"`       // low-level runtime error
-	httpStatusCode int    `json:"-"`       // http response status code
-	Message        string `json:"message"` // user-level status message
+	err            error  `json:"-"`
+	httpStatusCode int    `json:"-"`
+	Message        string `json:"message"`
 }
 
 func (er *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {

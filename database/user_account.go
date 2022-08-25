@@ -45,7 +45,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongId error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-/// Logs the user in, and returns a new identifier with it
+/// Logs the user in, and returns a new Session id with it
 func (db DBInstance) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
 	var hash, gid sql.NullString
 	var activated bool
