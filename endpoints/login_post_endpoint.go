@@ -53,7 +53,7 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 		t, tokenString, err := CreateNewSessionToken(sessionAuth, tokenClaimsSchema{data.Email, session})
 		if err != nil {
 			log.Error().Err(err).Caller().Msg("Error encoding new token")
-			render.Render(w, r, InternalServerError(errTokenCreationFailed))
+			render.Render(w, r, InternalServerError())
 			return
 		}
 

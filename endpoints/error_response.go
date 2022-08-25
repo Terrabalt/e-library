@@ -42,10 +42,10 @@ func ValidationFailedError(err error) render.Renderer {
 	}
 }
 
-func InternalServerError(err error) render.Renderer {
+func InternalServerError() render.Renderer {
 	return &ErrorResponse{
-		err:            err,
+		err:            nil,
 		httpStatusCode: http.StatusInternalServerError,
-		Message:        "Internal Server Error - " + err.Error(),
+		Message:        "Internal Server Error",
 	}
 }
