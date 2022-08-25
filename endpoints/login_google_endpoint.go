@@ -5,6 +5,7 @@ import (
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/googlehelper"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -54,6 +55,18 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 			return
 		}
 
-		sendNewToken(sessionAuth, tokenClaimsSchema{gClaims.Email, session}, w, r)
+		t, tokenString, err := CreateNewSessionToken(sessionAuth, tokenClaimsSchema{gClaims.Email, session})
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("Error encoding new token")
+			render.Render(w, r, InternalServerError(errTokenCreationFailed))
+			return
+		}
+
+		token := tokenResponse{
+			Token:     tokenString,
+			Scheme:    "Bearer",
+			ExpiresAt: t.Expiration().Format(time.RFC3339),
+		}
+		render.Render(w, r, &token)
 	}
 }

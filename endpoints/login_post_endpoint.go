@@ -4,6 +4,7 @@ import (
 	"errors"
 	"ic-rhadi/e_library/database"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -17,14 +18,14 @@ type loginPostRequest struct {
 
 func (l *loginPostRequest) Bind(r *http.Request) error {
 	if l.Email == "" || l.Password == "" {
-		return errLoginPostMalformed
+		return ErrLoginPostMalformed
 	}
 
 	return nil
 }
 
 var ErrLoginFailed = errors.New("login failed")
-var errLoginPostMalformed = errors.New("username or password missing")
+var ErrLoginPostMalformed = errors.New("username or password missing")
 
 func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +50,18 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 			return
 		}
 
-		sendNewToken(sessionAuth, tokenClaimsSchema{data.Email, session}, w, r)
+		t, tokenString, err := CreateNewSessionToken(sessionAuth, tokenClaimsSchema{data.Email, session})
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("Error encoding new token")
+			render.Render(w, r, InternalServerError(errTokenCreationFailed))
+			return
+		}
+
+		token := tokenResponse{
+			Token:     tokenString,
+			Scheme:    "Bearer",
+			ExpiresAt: t.Expiration().Format(time.RFC3339),
+		}
+		render.Render(w, r, &token)
 	}
 }

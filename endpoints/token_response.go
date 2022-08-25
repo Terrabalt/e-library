@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
-	"github.com/rs/zerolog/log"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 type tokenClaimsSchema struct {
@@ -43,12 +43,10 @@ func (token tokenResponse) Render(w http.ResponseWriter, r *http.Request) error 
 
 var errTokenCreationFailed = errors.New("token creation failed")
 
-func sendNewToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema, w http.ResponseWriter, r *http.Request) {
+func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema) (token jwt.Token, tokenString string, err error) {
 	c, err := claims.toInterface()
 	if err != nil {
-		log.Error().Err(err).Caller().Msg("Error making new token")
-		render.Render(w, r, InternalServerError(errTokenCreationFailed))
-		return
+		return nil, "", err
 	}
 
 	now := time.Now()
@@ -56,17 +54,5 @@ func sendNewToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema, w http.R
 	c["nbf"] = now.UTC().Unix()
 	jwtauth.SetExpiryIn(c, time.Duration(2)*time.Hour)
 
-	t, tokenString, err := tokenAuth.Encode(c)
-	if err != nil {
-		log.Error().Err(err).Caller().Msg("Error encoding new token")
-		render.Render(w, r, InternalServerError(errTokenCreationFailed))
-		return
-	}
-
-	token := tokenResponse{
-		Token:     tokenString,
-		Scheme:    "Bearer",
-		ExpiresAt: t.Expiration().Format(time.RFC3339),
-	}
-	render.Render(w, r, &token)
+	return tokenAuth.Encode(c)
 }
