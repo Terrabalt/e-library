@@ -13,7 +13,7 @@ import (
 )
 
 func TestSuccessfulLoginGoogle(t *testing.T) {
-	path := "/auth/login"
+	path := "/auth/google"
 
 	login := loginGoogleRequest{
 		GoogleToken: "a.b.c",
@@ -55,7 +55,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 }
 
 func TestMalformedLoginGoogle(t *testing.T) {
-	path := "/auth/login"
+	path := "/auth/google"
 
 	login := loginPostRequest{
 		Email:    "",
@@ -80,19 +80,12 @@ func TestMalformedLoginGoogle(t *testing.T) {
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }
-func TestFailedLoginGoogle(t *testing.T) {
 
-	path := "/auth/login"
+func TestTokenFailedLoginGoogle(t *testing.T) {
+	path := "/auth/google"
 
 	login := loginGoogleRequest{
 		GoogleToken: "a.b.c",
-	}
-
-	expGClaims := googlehelper.GoogleClaimsSchema{
-		Email:         expId.Account,
-		EmailVerified: true,
-		FullName:      "Joko",
-		AccountId:     expId.GAccount,
 	}
 
 	gValidatorMock := &gTokenValidatorMock{}
@@ -115,18 +108,40 @@ func TestFailedLoginGoogle(t *testing.T) {
 	assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
+}
+
+func TestFailedLoginGoogle(t *testing.T) {
+
+	path := "/auth/google"
+
+	login := loginGoogleRequest{
+		GoogleToken: "a.b.c",
+	}
+
+	expGClaims := googlehelper.GoogleClaimsSchema{
+		Email:         expId.Account,
+		EmailVerified: true,
+		FullName:      "Joko",
+		AccountId:     expId.GAccount,
+	}
+
+	gValidatorMock := &gTokenValidatorMock{}
 
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
+	dbMock := &dBMock{}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
 		Return("", database.ErrAccountNotFound).Once()
 
-	r, w = mockRequest(t, path, login, false)
-	handler = LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
+		sentForm()
+
+	r, w := mockRequest(t, path, login, false)
+	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
-	resp = &ErrorResponse{}
+	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object")
@@ -136,7 +151,7 @@ func TestFailedLoginGoogle(t *testing.T) {
 }
 
 func TestNotActivatedLoginGoogle(t *testing.T) {
-	path := "/auth/login"
+	path := "/auth/google"
 
 	login := loginGoogleRequest{
 		GoogleToken: "a.b.c",
