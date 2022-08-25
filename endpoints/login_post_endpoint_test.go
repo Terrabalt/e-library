@@ -51,7 +51,7 @@ func TestMalformedLoginPost(t *testing.T) {
 
 	dbMock := &dBMock{}
 
-	expResp, expCode := BadRequestError(errLoginPostMalformed).(*ErrorResponse).
+	expResp, expCode := BadRequestError(ErrLoginPostMalformed).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
