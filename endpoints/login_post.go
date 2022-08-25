@@ -24,6 +24,7 @@ func (l *loginPostRequest) Bind(r *http.Request) error {
 	return nil
 }
 
+var ErrLoginAccountNotActive = errors.New("account has not been activated yet")
 var ErrLoginFailed = errors.New("login failed")
 var ErrLoginPostMalformed = errors.New("username or password missing")
 
@@ -35,17 +36,20 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 		data := &loginPostRequest{}
 		if err := render.Bind(r, data); err != nil {
 			log.Debug().Err(err).Str("username", data.Email).Msg("Login attempt malformed")
-			render.Render(w, r, BadRequestError(err))
+			render.Render(w, r, BadRequestError(ErrLoginPostMalformed))
 			return
 		}
 
 		session, err := db.Login(ctx, data.Email, data.Password)
 		if err != nil {
-			log.Debug().Err(err).Str("username", data.Email).Msg("Login attempt failed")
-			if err == database.ErrAccountNotActive {
-				render.Render(w, r, UnauthorizedRequestError(err))
-			} else {
+			switch err {
+			case database.ErrAccountNotActive:
+				render.Render(w, r, UnauthorizedRequestError(ErrLoginAccountNotActive))
+			case database.ErrAccountNotFound, database.ErrWrongPass:
 				render.Render(w, r, ValidationFailedError(ErrLoginFailed))
+			default:
+				log.Debug().Err(err).Str("email", data.Email).Msg("Login attempt failed")
+				render.Render(w, r, InternalServerError())
 			}
 			return
 		}

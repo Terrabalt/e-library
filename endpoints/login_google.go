@@ -18,13 +18,13 @@ type loginGoogleRequest struct {
 
 func (l *loginGoogleRequest) Bind(r *http.Request) error {
 	if l.GoogleToken == "" {
-		return errLoginGoogleMalformed
+		return ErrLoginGoogleMalformed
 	}
 
 	return nil
 }
 
-var errLoginGoogleMalformed = errors.New("token missing")
+var ErrLoginGoogleMalformed = errors.New("token missing")
 
 func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator googlehelper.GTokenValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 		data := &loginGoogleRequest{}
 		if err := render.Bind(r, data); err != nil {
 			log.Debug().Err(err).Msg("Google token body malformed")
-			render.Render(w, r, BadRequestError(err))
+			render.Render(w, r, BadRequestError(ErrLoginGoogleMalformed))
 			return
 		}
 
@@ -46,11 +46,14 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 
 		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountId)
 		if err != nil {
-			log.Debug().Err(err).Str("username", gClaims.Email).Msg("Login attempt failed")
-			if err == database.ErrAccountNotActive {
-				render.Render(w, r, UnauthorizedRequestError(err))
-			} else {
+			switch err {
+			case database.ErrAccountNotActive:
+				render.Render(w, r, UnauthorizedRequestError(ErrLoginAccountNotActive))
+			case database.ErrAccountNotFound, database.ErrWrongId:
 				render.Render(w, r, ValidationFailedError(ErrLoginFailed))
+			default:
+				log.Debug().Err(err).Str("email", gClaims.Email).Msg("Login attempt failed")
+				render.Render(w, r, InternalServerError())
 			}
 			return
 		}

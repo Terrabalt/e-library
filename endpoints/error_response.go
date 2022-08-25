@@ -7,8 +7,8 @@ import (
 )
 
 type ErrorResponse struct {
-	err            error  `json:"-"`
 	httpStatusCode int    `json:"-"`
+	ErrorType      string `json:"error_type"`
 	Message        string `json:"message"`
 }
 
@@ -20,32 +20,32 @@ func (er *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {
 
 func BadRequestError(err error) render.Renderer {
 	return &ErrorResponse{
-		err:            err,
 		httpStatusCode: http.StatusBadRequest,
-		Message:        "Bad Request - " + err.Error(),
+		ErrorType:      "Bad Request",
+		Message:        err.Error(),
 	}
 }
 
 func UnauthorizedRequestError(err error) render.Renderer {
 	return &ErrorResponse{
-		err:            err,
 		httpStatusCode: http.StatusUnauthorized,
-		Message:        "Unauthorized Request - " + err.Error(),
+		ErrorType:      "Unauthorized Request",
+		Message:        err.Error(),
 	}
 }
 
 func ValidationFailedError(err error) render.Renderer {
 	return &ErrorResponse{
-		err:            err,
 		httpStatusCode: http.StatusUnprocessableEntity,
-		Message:        "Validation Failed - " + err.Error(),
+		ErrorType:      "Validation Failed",
+		Message:        err.Error(),
 	}
 }
 
 func InternalServerError() render.Renderer {
 	return &ErrorResponse{
-		err:            nil,
 		httpStatusCode: http.StatusInternalServerError,
-		Message:        "Internal Server Error",
+		ErrorType:      "Internal Server Error",
+		Message:        "something went wrong",
 	}
 }

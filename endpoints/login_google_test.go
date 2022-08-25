@@ -65,7 +65,7 @@ func TestMalformedLoginGoogle(t *testing.T) {
 	gValidatorMock := &gTokenValidatorMock{}
 	dbMock := &dBMock{}
 
-	expResp, expCode := BadRequestError(errLoginGoogleMalformed).(*ErrorResponse).
+	expResp, expCode := BadRequestError(ErrLoginGoogleMalformed).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
@@ -172,7 +172,7 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
 		Return("", database.ErrAccountNotActive).Once()
 
-	expResp, expCode := UnauthorizedRequestError(database.ErrAccountNotActive).(*ErrorResponse).
+	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)

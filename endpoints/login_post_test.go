@@ -105,7 +105,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	dbMock.On("Login", login.Email, login.Password).
 		Return("", database.ErrAccountNotActive).Once()
 
-	expResp, expCode := UnauthorizedRequestError(database.ErrAccountNotActive).(*ErrorResponse).
+	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)

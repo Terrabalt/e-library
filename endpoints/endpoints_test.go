@@ -78,7 +78,6 @@ func constToken(t *testing.T, tokenAuth *jwtauth.JWTAuth, email, session string)
 }
 
 func (e ErrorResponse) sentForm() (ErrorResponse, int) {
-	e.err = nil
 	status := e.httpStatusCode
 	e.httpStatusCode = 0
 	return e, status
