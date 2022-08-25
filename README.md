@@ -27,7 +27,7 @@ response - 200 OK
 {
     "token": "a.b.c",
     "scheme": "Bearer",
-    "expires_at": "28-07-2010T12:17:27+09"
+    "expires_at": "2010-07-28T12:54:27+09:00"
 }
 ```
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
@@ -50,7 +50,7 @@ response - 200 OK
 {
     "token": "a.b.c",
     "scheme": "Bearer",
-    "expires_at": "28-07-2010T12:17:27+09"
+    "expires_at": "2010-07-28T12:54:27+09:00"
 }
 ```
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
