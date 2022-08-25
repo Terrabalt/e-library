@@ -1,10 +1,12 @@
 package endpoints
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/googlehelper"
+	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
 	"testing"
 
@@ -35,6 +37,10 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
+	expClaims := sessiontoken.TokenClaimsSchema{
+		Email:   expId.Account,
+		Session: expId.Session,
+	}
 
 	r, w := mockRequest(t, path, login, false)
 	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
@@ -46,10 +52,14 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
 	assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
 
-	email, _ := token.Get("sub")
-	session, _ := token.Get("session")
-	assert.Equal(t, expId.Account, email, "A successful Google-Login didn't return expected email")
-	assert.Equal(t, expId.Session, session, "A successful Google-Login didn't return expected session id")
+	tokenMap, err := token.AsMap(context.Background())
+	if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+		var claims sessiontoken.TokenClaimsSchema
+		err := claims.FromInterface(tokenMap)
+		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+			assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+		}
+	}
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }

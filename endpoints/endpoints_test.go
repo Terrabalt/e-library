@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"ic-rhadi/e_library/googlehelper"
+	"ic-rhadi/e_library/sessiontoken"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -65,10 +66,10 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 }
 
 func constToken(t *testing.T, tokenAuth *jwtauth.JWTAuth, email, session string) (jwt.Token, string, error) {
-	expClaims, err := tokenClaimsSchema{
+	expClaims, err := sessiontoken.TokenClaimsSchema{
 		Email:   email,
 		Session: session,
-	}.toInterface()
+	}.ToInterface()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when making mock data", err)
 		return nil, "", err

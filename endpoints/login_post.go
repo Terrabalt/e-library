@@ -3,6 +3,7 @@ package endpoints
 import (
 	"errors"
 	"ic-rhadi/e_library/database"
+	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
 	"time"
 
@@ -54,7 +55,13 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 			return
 		}
 
-		t, tokenString, err := CreateNewSessionToken(sessionAuth, tokenClaimsSchema{data.Email, session})
+		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+			sessionAuth,
+			sessiontoken.TokenClaimsSchema{
+				Email:   data.Email,
+				Session: session,
+			},
+		)
 		if err != nil {
 			log.Error().Err(err).Caller().Msg("Error encoding new token")
 			render.Render(w, r, InternalServerError())

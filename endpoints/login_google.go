@@ -4,6 +4,7 @@ import (
 	"errors"
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/googlehelper"
+	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
 	"time"
 
@@ -58,7 +59,13 @@ func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.
 			return
 		}
 
-		t, tokenString, err := CreateNewSessionToken(sessionAuth, tokenClaimsSchema{gClaims.Email, session})
+		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+			sessionAuth,
+			sessiontoken.TokenClaimsSchema{
+				Email:   gClaims.Email,
+				Session: session,
+			},
+		)
 		if err != nil {
 			log.Error().Err(err).Caller().Msg("Error encoding new token")
 			render.Render(w, r, InternalServerError())
