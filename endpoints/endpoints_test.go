@@ -102,6 +102,11 @@ func (db dBMock) LoginGoogle(ctx context.Context, gID string, pass string, sessi
 	return args.String(0), args.Error(1)
 }
 
+func (db dBMock) Register(ctx context.Context, email string, password string, name string, viaGoogle bool) error {
+	args := db.Called(email, password, name, viaGoogle)
+	return args.Error(0)
+}
+
 type gTokenValidatorMock struct {
 	mock.Mock
 }

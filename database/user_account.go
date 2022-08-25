@@ -14,11 +14,13 @@ import (
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
+	Register(ctx context.Context, email string, password string, name string, viaGoogle bool) error
 }
 
 var loginStmt *sql.Stmt
 var loginGoogleStmt *sql.Stmt
 var loginRefreshStmt *sql.Stmt
+var registerStmt *sql.Stmt
 
 func init() {
 	prepareStatements = append(prepareStatements,
@@ -44,6 +46,14 @@ func init() {
 			loginRefreshStmt, `
 			INSERT INTO user_devices (
 				user_id, verifier, expires_in
+			)
+			VALUES
+				($1, $2, $3)`,
+		},
+		DBStatement{
+			registerStmt, `
+			INSERT INTO user_account (
+				email, password, g_id, name
 			)
 			VALUES
 				($1, $2, $3)`,
@@ -153,4 +163,19 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 		return "", err
 	}
 	return
+}
+
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string, viaGoogle bool) error {
+	var err error
+	if viaGoogle {
+		_, err = registerStmt.ExecContext(ctx, email, nil, password, name)
+	} else {
+		var hash []byte
+		hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		_, err = registerStmt.ExecContext(ctx, email, hash, nil, name)
+	}
+	return err
 }
