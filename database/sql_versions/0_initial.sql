@@ -2,7 +2,9 @@ CREATE TABLE IF NOT EXISTS user_account (
 	email varchar(255) NOT NULL,
 	password varchar(60),
 	g_id text,
-	activated BOOLEAN NOT NULL DEFAULT 'false',
+	activated boolean NOT NULL DEFAULT 'false',
+	activation_token uuid,
+	expires_in timestamptz,
 	name varchar(255) NOT NULL,
 	CONSTRAINT user_account_pk PRIMARY KEY (email)
 );

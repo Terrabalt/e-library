@@ -70,7 +70,7 @@ func RegisterPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Debug().Str("recovered", rec.(string)).Msg("Panicked while trying to register")
-				render.Render(w, r, InternalServerError(errors.New(rec.(string))))
+				render.Render(w, r, InternalServerError())
 			}
 		}()
 
@@ -81,12 +81,13 @@ func RegisterPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth
 			return
 		}
 
-		err := db.Register(ctx, data.Email, data.Password, data.Name, false)
+		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name, false)
 		if err != nil {
 			log.Debug().Err(err).Str("email", data.Email).Msg("Registering failed")
-			render.Render(w, r, InternalServerError(err))
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
+		SendActivationEmail(w, r, activationToken, *validUntil)
 	}
 }

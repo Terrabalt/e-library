@@ -14,13 +14,14 @@ import (
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	Register(ctx context.Context, email string, password string, name string, viaGoogle bool) error
+	Register(ctx context.Context, email string, password string, name string, viaGoogle bool) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt *sql.Stmt
 var loginGoogleStmt *sql.Stmt
 var loginRefreshStmt *sql.Stmt
 var registerStmt *sql.Stmt
+var refreshActivationStmt *sql.Stmt
 
 func init() {
 	prepareStatements = append(prepareStatements,
@@ -56,7 +57,16 @@ func init() {
 				email, password, g_id, name
 			)
 			VALUES
-				($1, $2, $3)`,
+				($1, $2, $3, $4)`,
+		},
+		DBStatement{
+			refreshActivationStmt, `
+			UPDATE user_account
+			SET 
+				activation_token = $1,
+				expires_in = $2
+			WHERE
+				email = $3`,
 		},
 	)
 }
@@ -165,17 +175,29 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	return
 }
 
-func (db DBInstance) Register(ctx context.Context, email string, password string, name string, viaGoogle bool) error {
-	var err error
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string, viaGoogle bool) (activationToken string, validUntil *time.Time, err error) {
 	if viaGoogle {
-		_, err = registerStmt.ExecContext(ctx, email, nil, password, name)
+		_, err := registerStmt.ExecContext(ctx, email, nil, password, name)
+		if err != nil {
+			return "", nil, err
+		}
 	} else {
 		var hash []byte
-		hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			return err
+			return "", nil, err
 		}
 		_, err = registerStmt.ExecContext(ctx, email, hash, nil, name)
+		if err != nil {
+			return "", nil, err
+		}
 	}
-	return err
+	return db.RefreshActivation(ctx, email)
+}
+
+func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {
+	activationToken = uuid.NewString()
+	*validUntil = time.Now().Add(time.Minute * time.Duration(2))
+	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, validUntil, email)
+	return
 }
