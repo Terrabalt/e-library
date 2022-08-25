@@ -14,12 +14,12 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Username: expId.Account,
+		Email:    expId.Account,
 		Password: "Password",
 	}
 
 	dbMock := &DBMock{}
-	dbMock.On("Login", login.Username, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password, false).
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
@@ -45,7 +45,7 @@ func TestMalformedLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Username: "",
+		Email:    "",
 		Password: "Password",
 	}
 
@@ -70,12 +70,12 @@ func TestFailedLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Username: expId.Account,
+		Email:    expId.Account,
 		Password: "Passwor",
 	}
 
 	dbMock := &DBMock{}
-	dbMock.On("Login", login.Username, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password, false).
 		Return("", database.ErrAccountNotFound).Once()
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
@@ -97,12 +97,12 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Username: expId.Account,
+		Email:    expId.Account,
 		Password: "Password",
 	}
 
 	dbMock := &DBMock{}
-	dbMock.On("Login", login.Username, login.Password, false).
+	dbMock.On("Login", login.Email, login.Password, false).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(database.ErrAccountNotActive).(*ErrorResponse).

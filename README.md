@@ -18,7 +18,7 @@ docker-compose up
 body - 
 ```json
 {
-    "username": "username",
+    "email": "username@example.co.id",
     "password": "password"
 }
 ```

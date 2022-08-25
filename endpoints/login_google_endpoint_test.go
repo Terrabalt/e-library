@@ -57,7 +57,7 @@ func TestMalformedLoginGoogle(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Username: "",
+		Email:    "",
 		Password: "Password",
 	}
 

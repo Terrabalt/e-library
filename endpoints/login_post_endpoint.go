@@ -11,12 +11,12 @@ import (
 )
 
 type loginPostRequest struct {
-	Username string `json:"username"` // User login ID.
+	Email    string `json:"email"`    // User login ID.
 	Password string `json:"password"` // Password to verify.
 }
 
 func (l *loginPostRequest) Bind(r *http.Request) error {
-	if l.Username == "" || l.Password == "" {
+	if l.Email == "" || l.Password == "" {
 		return errLoginPostMalformed
 	}
 
@@ -33,14 +33,14 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 
 		data := &loginPostRequest{}
 		if err := render.Bind(r, data); err != nil {
-			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt malformed")
+			log.Debug().Err(err).Str("username", data.Email).Msg("Login attempt malformed")
 			render.Render(w, r, BadRequestError(err))
 			return
 		}
 
-		session, err := db.Login(ctx, data.Username, data.Password, false)
+		session, err := db.Login(ctx, data.Email, data.Password, false)
 		if err != nil {
-			log.Debug().Err(err).Str("username", data.Username).Msg("Login attempt failed")
+			log.Debug().Err(err).Str("username", data.Email).Msg("Login attempt failed")
 			if err == database.ErrAccountNotActive {
 				render.Render(w, r, UnauthorizedRequestError(err))
 			} else {
@@ -49,6 +49,6 @@ func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JW
 			return
 		}
 
-		sendNewToken(sessionAuth, tokenClaimsSchema{data.Username, session}, w, r)
+		sendNewToken(sessionAuth, tokenClaimsSchema{data.Email, session}, w, r)
 	}
 }

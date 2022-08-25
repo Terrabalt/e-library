@@ -12,7 +12,7 @@ import (
 )
 
 type tokenClaimsSchema struct {
-	Email   string `json:"email"`
+	Email   string `json:"sub"`
 	Session string `json:"session"`
 }
 
@@ -49,8 +49,11 @@ func sendNewToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema, w http.R
 		return
 	}
 
-	jwtauth.SetIssuedNow(c)
+	now := time.Now()
+	jwtauth.SetIssuedAt(c, now)
+	c["nbf"] = now.UTC().Unix()
 	jwtauth.SetExpiryIn(c, time.Duration(2)*time.Hour)
+
 	t, tokenString, err := tokenAuth.Encode(c)
 	if err != nil {
 		log.Error().Err(err).Caller().Msg("Error encoding new token")
