@@ -41,11 +41,13 @@ func (token tokenResponse) Render(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
+var errTokenCreationFailed = errors.New("token creation failed")
+
 func sendNewToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema, w http.ResponseWriter, r *http.Request) {
 	c, err := claims.toInterface()
 	if err != nil {
 		log.Error().Err(err).Caller().Msg("Error making new token")
-		render.Render(w, r, InternalServerError(errors.New("token creation failed")))
+		render.Render(w, r, InternalServerError(errTokenCreationFailed))
 		return
 	}
 
@@ -57,7 +59,7 @@ func sendNewToken(tokenAuth *jwtauth.JWTAuth, claims tokenClaimsSchema, w http.R
 	t, tokenString, err := tokenAuth.Encode(c)
 	if err != nil {
 		log.Error().Err(err).Caller().Msg("Error encoding new token")
-		render.Render(w, r, InternalServerError(errors.New("token creation failed")))
+		render.Render(w, r, InternalServerError(errTokenCreationFailed))
 		return
 	}
 
