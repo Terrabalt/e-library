@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/endpoints"
+	"ic-rhadi/e_library/googlehelper"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +17,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
+
+type config struct {
+	jwtsecret string
+	pgHost    string
+	pgPort    string
+	pgUser    string
+	pgPass    string
+	pgDB      string
+}
 
 func main() {
 	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
@@ -49,7 +59,7 @@ func main() {
 		log.Panic().Err(err).Caller().Msg("Error initializing database")
 	}
 
-	gValidator, err := endpoints.NewGValidator(context.Background())
+	gValidator, err := googlehelper.NewGValidator(context.Background())
 	if err != nil {
 		log.Panic().Err(err).Msg("Google token validator failed to initialize")
 		return

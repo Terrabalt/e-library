@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"ic-rhadi/e_library/database"
+	"ic-rhadi/e_library/googlehelper"
 	"net/http"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	expGClaims := googleClaimsSchema{
+	expGClaims := googlehelper.GoogleClaimsSchema{
 		Email:         expId.Account,
 		EmailVerified: true,
 		FullName:      "Joko",
@@ -29,7 +30,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	gValidatorMock.On("validateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 	dbMock.On("Login", expGClaims.Email, expGClaims.AccountId, true).
 		Return(expId.Session, nil).Once()
 
@@ -62,7 +63,7 @@ func TestMalformedLoginGoogle(t *testing.T) {
 	}
 
 	gValidatorMock := &gTokenValidatorMock{}
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 
 	expResp, expCode := BadRequestError(errLoginGoogleMalformed).(*ErrorResponse).
 		sentForm()
@@ -87,7 +88,7 @@ func TestFailedLoginGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	expGClaims := googleClaimsSchema{
+	expGClaims := googlehelper.GoogleClaimsSchema{
 		Email:         expId.Account,
 		EmailVerified: true,
 		FullName:      "Joko",
@@ -98,7 +99,7 @@ func TestFailedLoginGoogle(t *testing.T) {
 	gValidatorMock.On("validateGToken", login.GoogleToken).
 		Return(nil, errors.New("password wrong, should be xxxxx")).Once()
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
@@ -141,7 +142,7 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	expGClaims := googleClaimsSchema{
+	expGClaims := googlehelper.GoogleClaimsSchema{
 		Email:         expId.Account,
 		EmailVerified: true,
 		FullName:      "Joko",
@@ -152,7 +153,7 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 	gValidatorMock.On("validateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 	dbMock.On("Login", expGClaims.Email, expGClaims.AccountId, true).
 		Return("", database.ErrAccountNotActive).Once()
 

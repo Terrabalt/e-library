@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"ic-rhadi/e_library/googlehelper"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -83,11 +84,11 @@ func (e ErrorResponse) sentForm() (ErrorResponse, int) {
 	return e, status
 }
 
-type DBMock struct {
+type dBMock struct {
 	mock.Mock
 }
 
-func (db DBMock) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
+func (db dBMock) Login(ctx context.Context, email string, pass string, viaGoogle bool) (id string, err error) {
 	args := db.Called(email, pass, viaGoogle)
 	return args.String(0), args.Error(1)
 }
@@ -96,10 +97,10 @@ type gTokenValidatorMock struct {
 	mock.Mock
 }
 
-func (g gTokenValidatorMock) validateGToken(ctx context.Context, token string) (*googleClaimsSchema, error) {
+func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (*googlehelper.GoogleClaimsSchema, error) {
 	args := g.Called(token)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*googleClaimsSchema), args.Error(1)
+	return args.Get(0).(*googlehelper.GoogleClaimsSchema), args.Error(1)
 }

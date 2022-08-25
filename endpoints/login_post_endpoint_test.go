@@ -18,7 +18,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 	dbMock.On("Login", login.Email, login.Password, false).
 		Return(expId.Session, nil).Once()
 
@@ -49,7 +49,7 @@ func TestMalformedLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 
 	expResp, expCode := BadRequestError(errLoginPostMalformed).(*ErrorResponse).
 		sentForm()
@@ -74,7 +74,7 @@ func TestFailedLoginPost(t *testing.T) {
 		Password: "Passwor",
 	}
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 	dbMock.On("Login", login.Email, login.Password, false).
 		Return("", database.ErrAccountNotFound).Once()
 
@@ -101,7 +101,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &DBMock{}
+	dbMock := &dBMock{}
 	dbMock.On("Login", login.Email, login.Password, false).
 		Return("", database.ErrAccountNotActive).Once()
 
