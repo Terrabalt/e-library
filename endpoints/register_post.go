@@ -63,7 +63,11 @@ var errPasswordDontHaveNumber = errors.New("")
 var errPasswordDontHaveUppercase = errors.New("")
 var errPasswordDontHaveSpecials = errors.New("")
 
-func RegisterPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
+func RegisterPost(
+	db database.UserAccountInterface,
+	sessionAuth *jwtauth.JWTAuth,
+	email emailhelper.ActivationMailDriver,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()
@@ -89,7 +93,7 @@ func RegisterPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth
 			return
 		}
 
-		if err := emailhelper.SendActivationEmail(w, r, data.Email, activationToken, *validUntil); err != nil {
+		if err := email.SendActivationEmail(w, r, data.Email, activationToken, *validUntil); err != nil {
 			log.Debug().Err(err).Str("email", data.Email).Str("Activation Token", activationToken).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
 			return
