@@ -13,9 +13,9 @@ import (
 
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
+	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
 	Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error)
-	RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error)
+	RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt *sql.Stmt
@@ -87,6 +87,12 @@ var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
 func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			sessionID = ""
+			err = errors.New(rec.(string))
+		}
+	}()
 	var hash sql.NullString
 	var activated bool
 
@@ -137,6 +143,12 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 }
 
 func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			sessionID = ""
+			err = errors.New(rec.(string))
+		}
+	}()
 	var gid sql.NullString
 	var activated bool
 
@@ -197,8 +209,8 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	return db.RefreshActivation(ctx, email)
 }
 
-func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error) {
-	_, err = registerStmt.ExecContext(ctx, email, gId, name)
+func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
+	_, err = registerStmt.ExecContext(ctx, email, gID, name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -206,6 +218,14 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gId strin
 }
 
 func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			activationToken = ""
+			validUntil = nil
+			err = errors.New(rec.(string))
+		}
+	}()
+
 	activationToken = uuid.NewString()
 	*validUntil = time.Now().Add(time.Minute * time.Duration(2))
 	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, validUntil, email)

@@ -72,13 +72,6 @@ func RegisterPost(
 		defer r.Body.Close()
 		ctx := r.Context()
 
-		defer func() {
-			if rec := recover(); rec != nil {
-				log.Debug().Str("recovered", rec.(string)).Msg("Panicked while trying to register")
-				render.Render(w, r, InternalServerError())
-			}
-		}()
-
 		data := &registerPostRequest{}
 		if err := render.Bind(r, data); err != nil {
 			log.Debug().Err(err).Str("email", data.Email).Str("name", data.Name).Msg("Registering attempt failed")

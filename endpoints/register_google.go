@@ -36,13 +36,6 @@ func RegisterGoogle(
 		defer r.Body.Close()
 		ctx := r.Context()
 
-		defer func() {
-			if rec := recover(); rec != nil {
-				log.Debug().Str("recovered", rec.(string)).Msg("Panicked while trying to register")
-				render.Render(w, r, InternalServerError())
-			}
-		}()
-
 		data := &registerGoogleRequest{}
 		if err := render.Bind(r, data); err != nil {
 			log.Debug().Err(err).Msg("Registering attempt failed")
@@ -57,7 +50,7 @@ func RegisterGoogle(
 			return
 		}
 
-		activationToken, validUntil, err := db.RegisterGoogle(ctx, gClaims.Email, gClaims.AccountId, gClaims.FullName)
+		activationToken, validUntil, err := db.RegisterGoogle(ctx, gClaims.Email, gClaims.AccountID, gClaims.FullName)
 		if err != nil {
 			log.Debug().Err(err).Str("email", gClaims.Email).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
