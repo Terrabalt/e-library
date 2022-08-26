@@ -24,7 +24,7 @@ func (l *registerGoogleRequest) Bind(r *http.Request) error {
 	return nil
 }
 
-var errRegisterGoogleMalformed = errors.New("")
+var errRegisterGoogleMalformed = errors.New("token missing")
 
 func RegisterGoogle(
 	db database.UserAccountInterface,

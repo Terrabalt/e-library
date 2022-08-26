@@ -55,13 +55,13 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 	return nil
 }
 
-var errRegisterPostMalformed = errors.New("")
-var errEmailMalformed = errors.New("")
-var errPasswordTooShort = errors.New("")
-var errPasswordTooLong = errors.New("")
-var errPasswordDontHaveNumber = errors.New("")
-var errPasswordDontHaveUppercase = errors.New("")
-var errPasswordDontHaveSpecials = errors.New("")
+var errRegisterPostMalformed = errors.New("email, password, or name missing")
+var errEmailMalformed = errors.New("email form unrecognizable")
+var errPasswordTooShort = errors.New("password is too short")
+var errPasswordTooLong = errors.New("password is too long")
+var errPasswordDontHaveNumber = errors.New("password don't have number")
+var errPasswordDontHaveUppercase = errors.New("password don't have uppercase english unaccented latin letters")
+var errPasswordDontHaveSpecials = errors.New("password don't have special characters")
 
 func RegisterPost(
 	db database.UserAccountInterface,
