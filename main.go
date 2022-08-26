@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"ic-rhadi/e_library/database"
+	"ic-rhadi/e_library/emailhelper"
 	"ic-rhadi/e_library/endpoints"
 	"ic-rhadi/e_library/googlehelper"
 	"net/http"
@@ -48,6 +49,11 @@ func main() {
 		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
 	}
 
+	var email emailhelper.ActivationMailDriverInst
+	if err := envconfig.Process(context.Background(), &email); err != nil {
+		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
+	}
+
 	sessionAuth := jwtauth.New("HS256", []byte(config.JWTSecret), nil)
 	dbUrl := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		config.PgHost,
@@ -83,6 +89,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
+		r.Post("/register", endpoints.RegisterPost(db, sessionAuth, email))
 	})
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
