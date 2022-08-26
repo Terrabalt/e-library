@@ -63,6 +63,6 @@ func RegisterGoogle(
 			return
 		}
 
-		r.Response.StatusCode = http.StatusCreated
+		render.Render(w, r, &registerResponse{NewId: gClaims.Email})
 	}
 }

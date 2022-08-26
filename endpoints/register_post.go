@@ -55,6 +55,16 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 	return nil
 }
 
+type registerResponse struct {
+	NewId string `json:"new_id"`
+}
+
+func (reg *registerResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("content-type", "application/json")
+	return nil
+}
+
 var errRegisterPostMalformed = errors.New("email, password, or name missing")
 var errEmailMalformed = errors.New("email form unrecognizable")
 var errPasswordTooShort = errors.New("password is too short")
@@ -92,6 +102,6 @@ func RegisterPost(
 			return
 		}
 
-		r.Response.StatusCode = http.StatusCreated
+		render.Render(w, r, &registerResponse{NewId: data.Email})
 	}
 }
