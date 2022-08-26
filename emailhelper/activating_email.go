@@ -2,14 +2,13 @@ package emailhelper
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
 	"gopkg.in/gomail.v2"
 )
 
 type ActivationMailDriver interface {
-	SendActivationEmail(w http.ResponseWriter, r *http.Request, email string, activationToken string, validUntil time.Time) error
+	SendActivationEmail(email string, activationToken string, validUntil time.Time) error
 }
 
 type ActivationMailDriverInst struct {
@@ -22,7 +21,7 @@ type ActivationMailDriverInst struct {
 	EmailFrom string `env:"SMTP_EMAIL, required"`
 }
 
-func (dialMail ActivationMailDriverInst) SendActivationEmail(w http.ResponseWriter, r *http.Request, email string, activationToken string, validUntil time.Time) error {
+func (dialMail ActivationMailDriverInst) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
 	mailSetup := gomail.NewMessage()
 
 	mailSetup.SetHeader("From", dialMail.EmailFrom)

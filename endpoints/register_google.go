@@ -57,7 +57,7 @@ func RegisterGoogle(
 			return
 		}
 
-		if err := email.SendActivationEmail(w, r, gClaims.Email, activationToken, *validUntil); err != nil {
+		if err := email.SendActivationEmail(gClaims.Email, activationToken, *validUntil); err != nil {
 			log.Debug().Err(err).Str("email", gClaims.Email).Str("Activation Token", activationToken).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
 			return
