@@ -14,13 +14,15 @@ import (
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	Register(ctx context.Context, email string, password string, name string, viaGoogle bool) (activationToken string, validUntil *time.Time, err error)
+	Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error)
+	RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt *sql.Stmt
 var loginGoogleStmt *sql.Stmt
 var loginRefreshStmt *sql.Stmt
 var registerStmt *sql.Stmt
+var registerGoogleStmt *sql.Stmt
 var refreshActivationStmt *sql.Stmt
 
 func init() {
@@ -54,10 +56,18 @@ func init() {
 		DBStatement{
 			registerStmt, `
 			INSERT INTO user_account (
-				email, password, g_id, name
+				email, password, name
 			)
 			VALUES
-				($1, $2, $3, $4)`,
+				($1, $2, $3)`,
+		},
+		DBStatement{
+			registerGoogleStmt, `
+			INSERT INTO user_account (
+				email, g_id, name
+			)
+			VALUES
+				($1, $2, $3)`,
 		},
 		DBStatement{
 			refreshActivationStmt, `
@@ -175,22 +185,22 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	return
 }
 
-func (db DBInstance) Register(ctx context.Context, email string, password string, name string, viaGoogle bool) (activationToken string, validUntil *time.Time, err error) {
-	if viaGoogle {
-		_, err := registerStmt.ExecContext(ctx, email, nil, password, name)
-		if err != nil {
-			return "", nil, err
-		}
-	} else {
-		var hash []byte
-		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			return "", nil, err
-		}
-		_, err = registerStmt.ExecContext(ctx, email, hash, nil, name)
-		if err != nil {
-			return "", nil, err
-		}
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", nil, err
+	}
+	_, err = registerStmt.ExecContext(ctx, email, hash, name)
+	if err != nil {
+		return "", nil, err
+	}
+	return db.RefreshActivation(ctx, email)
+}
+
+func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error) {
+	_, err = registerStmt.ExecContext(ctx, email, gId, name)
+	if err != nil {
+		return "", nil, err
 	}
 	return db.RefreshActivation(ctx, email)
 }
@@ -199,5 +209,8 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activ
 	activationToken = uuid.NewString()
 	*validUntil = time.Now().Add(time.Minute * time.Duration(2))
 	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, validUntil, email)
+	if err != nil {
+		return "", nil, err
+	}
 	return
 }

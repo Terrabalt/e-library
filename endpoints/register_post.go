@@ -86,7 +86,7 @@ func RegisterPost(
 			return
 		}
 
-		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name, false)
+		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name)
 		if err != nil {
 			log.Debug().Err(err).Str("email", data.Email).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
