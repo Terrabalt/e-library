@@ -19,7 +19,7 @@ body -
 ```json
 {
     "email": "username@example.co.id",
-    "password": "password"
+    "password": "P4sswordꦏꦤ꧀"
 }
 ```
 response - 200 OK
@@ -33,6 +33,7 @@ response - 200 OK
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 ```json
 {
+    "error_type": "Bad Request",
     "message": "error-message"
 }
 ```
@@ -56,6 +57,53 @@ response - 200 OK
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 ```json
 {
+    "error_type": "Bad Request",
+    "message": "error-message"
+}
+```
+
+### /auth/register:
+
+body - 
+```json
+{
+    "email": "username@example.co.id",
+    "name": "Joko",
+    "password": "P4sswordꦏꦤ꧀"
+}
+```
+response - 200 OK
+```json
+{
+    "new_id": "username@example.co.id"
+}
+```
+response - 400 Bad Request
+```json
+{
+    "error_type": "Bad Request",
+    "message": "error-message"
+}
+```
+
+### /auth/register/google:
+
+body - 
+```json
+{
+    "token": "aa.bb.cc",
+}
+```
+response - 200 OK
+```json
+{
+    "new_id": "username@example.co.id"
+}
+```
+response - 400 Bad Request; 422 Validation Failed
+```json
+{
+    "error_type": "Bad Request",
     "message": "error-message"
 }
 ```
