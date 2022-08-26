@@ -3,6 +3,7 @@ package endpoints
 import (
 	"errors"
 	"ic-rhadi/e_library/database"
+	"ic-rhadi/e_library/emailhelper"
 	"net/http"
 	"regexp"
 	"unicode/utf8"
@@ -62,7 +63,7 @@ var errPasswordDontHaveNumber = errors.New("")
 var errPasswordDontHaveUppercase = errors.New("")
 var errPasswordDontHaveSpecials = errors.New("")
 
-func RegisterPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
+func RegisterPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()
@@ -88,7 +89,7 @@ func RegisterPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth
 			return
 		}
 
-		if err := SendActivationEmail(w, r, data.Email, activationToken, *validUntil); err != nil {
+		if err := emailhelper.SendActivationEmail(w, r, data.Email, activationToken, *validUntil); err != nil {
 			log.Debug().Err(err).Str("email", data.Email).Str("Activation Token", activationToken).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
 			return
