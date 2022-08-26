@@ -19,11 +19,13 @@ import (
 )
 
 var expID = struct {
-	Account  string
-	Session  string
-	GAccount string
+	Account           string
+	AccountActivation string
+	Session           string
+	GAccount          string
 }{
-	"123456778-9abc-def0@1234.56789abcdef0",
+	"123456778-9abc-def0@1234.56789abc.def",
+	"3456789a-bcde-f012-3456-789abcdef012",
 	"12345678-9abc-def0-1234-56789abcdef0",
 	"123456789abcdef0123456789abcdef0",
 }
@@ -122,4 +124,13 @@ func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*googlehelper.GoogleClaimsSchema), args.Error(1)
+}
+
+type activationMailDriverMock struct {
+	mock.Mock
+}
+
+func (mail activationMailDriverMock) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
+	args := mail.Called(email, activationToken, validUntil)
+	return args.Error(0)
 }
