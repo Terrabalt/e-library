@@ -26,10 +26,11 @@ func (dialMail ActivationMailDriverInst) SendActivationEmail(email string, activ
 
 	mailSetup.SetHeader("From", dialMail.EmailFrom)
 	mailSetup.SetHeader("To", email)
+	mailSetup.SetHeader("Subject", "Activate your account")
 	mailSetup.SetBody("text/html",
-		"Thank you for registering. To complete, click the link below.\n"+
-			fmt.Sprintf("<a href=\"%s/auth/act?token=%s\">Click here</a>\n", dialMail.Host, activationToken)+
-			"--eLibrary--",
+		"<p>Thank you for registering. To complete, click the link below.</p>"+
+			fmt.Sprintf("<p><a href=\"%s/auth/act?token=%s\">Click here</a></p>", dialMail.Host, activationToken)+
+			"<p>--eLibrary--</p>",
 	)
 
 	return dialMail.Dialer.DialAndSend(mailSetup)
