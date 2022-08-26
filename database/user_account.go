@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"runtime"
 	"time"
 
 	"github.com/google/uuid"
@@ -222,13 +223,14 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activ
 		if rec := recover(); rec != nil {
 			activationToken = ""
 			validUntil = nil
-			err = errors.New(rec.(string))
+			err = rec.(runtime.Error)
 		}
 	}()
 
 	activationToken = uuid.NewString()
-	*validUntil = time.Now().Add(time.Minute * time.Duration(2))
-	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, validUntil, email)
+	v := time.Now().Add(time.Minute * time.Duration(2))
+	validUntil = &v
+	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, *validUntil, email)
 	if err != nil {
 		return "", nil, err
 	}
