@@ -43,7 +43,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	}
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
@@ -79,7 +79,7 @@ func TestMalformedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -108,7 +108,7 @@ func TestTokenFailedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -148,7 +148,7 @@ func TestFailedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -186,7 +186,7 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogleEndpoint(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}

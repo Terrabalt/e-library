@@ -27,7 +27,7 @@ func (l *loginGoogleRequest) Bind(r *http.Request) error {
 
 var ErrLoginGoogleMalformed = errors.New("token missing")
 
-func LoginGoogleEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator googlehelper.GTokenValidator) http.HandlerFunc {
+func LoginGoogle(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator googlehelper.GTokenValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()

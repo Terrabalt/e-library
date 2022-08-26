@@ -31,7 +31,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	}
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPostEndpoint(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth)
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
@@ -65,7 +65,7 @@ func TestMalformedLoginPost(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPostEndpoint(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -92,7 +92,7 @@ func TestFailedLoginPost(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPostEndpoint(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -119,7 +119,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPostEndpoint(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}

@@ -29,7 +29,7 @@ var ErrLoginAccountNotActive = errors.New("account has not been activated yet")
 var ErrLoginFailed = errors.New("login failed")
 var ErrLoginPostMalformed = errors.New("username or password missing")
 
-func LoginPostEndpoint(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
+func LoginPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()

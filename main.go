@@ -72,8 +72,8 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/login", endpoints.LoginPostEndpoint(db, sessionAuth))
-		r.Post("/google", endpoints.LoginGoogleEndpoint(db, sessionAuth, gValidator))
+		r.Post("/login", endpoints.LoginPost(db, sessionAuth))
+		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator))
 	})
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
