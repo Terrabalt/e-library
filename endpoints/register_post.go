@@ -100,6 +100,5 @@ func RegisterPost(
 		}
 
 		r.Response.StatusCode = http.StatusCreated
-
 	}
 }

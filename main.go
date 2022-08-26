@@ -90,6 +90,7 @@ func main() {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
 		r.Post("/register", endpoints.RegisterPost(db, sessionAuth, email))
+		r.Post("/register/google", endpoints.RegisterGoogle(db, sessionAuth, gValidator, email))
 	})
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
