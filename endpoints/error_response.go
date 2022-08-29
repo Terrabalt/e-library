@@ -26,6 +26,14 @@ func BadRequestError(err error) render.Renderer {
 	}
 }
 
+func RequestConflictError(err error) render.Renderer {
+	return &ErrorResponse{
+		httpStatusCode: http.StatusConflict,
+		ErrorType:      "Conflict",
+		Message:        err.Error(),
+	}
+}
+
 func UnauthorizedRequestError(err error) render.Renderer {
 	return &ErrorResponse{
 		httpStatusCode: http.StatusUnauthorized,

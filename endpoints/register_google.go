@@ -52,6 +52,10 @@ func RegisterGoogle(
 
 		activationToken, validUntil, err := db.RegisterGoogle(ctx, gClaims.Email, gClaims.AccountID, gClaims.FullName)
 		if err != nil {
+			if err == database.ErrAccountExisted {
+				render.Render(w, r, RequestConflictError(errAccountAlreadyRegistered))
+				return
+			}
 			log.Debug().Err(err).Str("email", gClaims.Email).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
 			return

@@ -392,17 +392,31 @@ func TestSuccessfulRegister(t *testing.T) {
 	db := DBInstance{d}
 
 	th := &testString{}
-	test1 := mock.ExpectPrepare("INSERT")
-	test2 := mock.ExpectPrepare("UPDATE")
-	test1.ExpectExec().
+	test1 := mock.ExpectPrepare("SELECT")
+	test2 := mock.ExpectPrepare("INSERT")
+	test3 := mock.ExpectPrepare("UPDATE")
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnError(sql.ErrNoRows)
+	test2.ExpectExec().
 		WithArgs(expEmail, th, expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	tu := &testUUID{}
-	test2.ExpectExec().
+	test3.ExpectExec().
 		WithArgs(tu, sqlmock.AnyArg(), expEmail).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
+		SELECT 
+			password, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	loginStmt = *stmt
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	stmt, err = d.Prepare(`
 		INSERT INTO user_account (
 			email, password, name
 		)
@@ -437,17 +451,31 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	db := DBInstance{d}
 
 	th := &testString{}
-	test1 := mock.ExpectPrepare("INSERT")
-	test2 := mock.ExpectPrepare("UPDATE")
-	test1.ExpectExec().
+	test1 := mock.ExpectPrepare("SELECT")
+	test2 := mock.ExpectPrepare("INSERT")
+	test3 := mock.ExpectPrepare("UPDATE")
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnError(sql.ErrNoRows)
+	test2.ExpectExec().
 		WithArgs(expEmail, th, expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	tu := &testUUID{}
-	test2.ExpectExec().
+	test3.ExpectExec().
 		WithArgs(tu, sqlmock.AnyArg(), expEmail).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
+		SELECT 
+			g_id, activated
+		FROM 
+			user_account 
+		WHERE 
+			email = $1`)
+	loginGoogleStmt = *stmt
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	stmt, err = d.Prepare(`
 		INSERT INTO user_account (
 			email, g_id, name
 		)

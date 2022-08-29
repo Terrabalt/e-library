@@ -72,6 +72,7 @@ var errPasswordTooLong = errors.New("password is too long")
 var errPasswordDontHaveNumber = errors.New("password don't have number")
 var errPasswordDontHaveUppercase = errors.New("password don't have uppercase english unaccented latin letters")
 var errPasswordDontHaveSpecials = errors.New("password don't have special characters")
+var errAccountAlreadyRegistered = errors.New("this account is already registered")
 
 func RegisterPost(
 	db database.UserAccountInterface,
@@ -91,6 +92,10 @@ func RegisterPost(
 
 		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name)
 		if err != nil {
+			if err == database.ErrAccountExisted {
+				render.Render(w, r, RequestConflictError(errAccountAlreadyRegistered))
+				return
+			}
 			log.Debug().Err(err).Str("email", data.Email).Msg("Registering failed")
 			render.Render(w, r, InternalServerError())
 			return
