@@ -31,7 +31,7 @@ type GoogleClaimsSchema struct {
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	FullName      string `json:"name"`
-	AccountId     string `json:"sub"`
+	AccountID     string `json:"sub"`
 }
 
 var ErrGoogleEmailUnverified = errors.New("google email unverified")

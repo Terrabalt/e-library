@@ -51,12 +51,12 @@ func LoginGoogle(
 			return
 		}
 
-		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountId, sessionLength)
+		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountID, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
 				render.Render(w, r, UnauthorizedRequestError(ErrLoginAccountNotActive))
-			case database.ErrAccountNotFound, database.ErrWrongId:
+			case database.ErrAccountNotFound, database.ErrWrongID:
 				render.Render(w, r, ValidationFailedError(ErrLoginFailed))
 			default:
 				log.Debug().Err(err).Str("email", gClaims.Email).Msg("Login attempt failed")

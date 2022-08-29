@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var expId = struct {
+var expID = struct {
 	Account  string
 	Session  string
 	GAccount string
@@ -29,7 +29,7 @@ var expId = struct {
 }
 
 type param struct {
-	Id    string
+	ID    string
 	Param string
 }
 
@@ -56,12 +56,12 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 
 	routerCtx := chi.NewRouteContext()
 	for _, p := range params {
-		routerCtx.URLParams.Add(p.Id, p.Param)
+		routerCtx.URLParams.Add(p.ID, p.Param)
 	}
 	ctx := context.WithValue(context.Background(), chi.RouteCtxKey, routerCtx)
 
 	if withToken {
-		expToken, _, err := constToken(t, tokenAuth, expId.Account, expId.Session)
+		expToken, _, err := constToken(t, tokenAuth, expID.Account, expID.Session)
 		ctx = jwtauth.NewContext(ctx, expToken, err)
 	}
 
@@ -97,8 +97,8 @@ func (db dBMock) Login(ctx context.Context, email string, pass string, sessionLe
 	return args.String(0), args.Error(1)
 }
 
-func (db dBMock) LoginGoogle(ctx context.Context, g_id string, pass string, sessionLength time.Duration) (id string, err error) {
-	args := db.Called(g_id, pass, sessionLength)
+func (db dBMock) LoginGoogle(ctx context.Context, gID string, pass string, sessionLength time.Duration) (id string, err error) {
+	args := db.Called(gID, pass, sessionLength)
 	return args.String(0), args.Error(1)
 }
 

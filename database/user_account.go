@@ -12,8 +12,8 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error)
-	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error)
+	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
+	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 }
 
 var loginStmt *sql.Stmt
@@ -53,10 +53,10 @@ func init() {
 
 var ErrAccountNotActive error = errors.New("account not activated")
 var ErrAccountNotFound error = errors.New("account not found")
-var ErrWrongId error = errors.New("google account id invalid")
+var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -87,14 +87,14 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 		return "", ErrWrongPass
 	}
 
-	sessionId = uuid.NewString()
+	sessionID = uuid.NewString()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionId,
+			sessionID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -103,10 +103,10 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return sessionId, nil
+	return
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string, sessionLength time.Duration) (sessionId string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -132,18 +132,18 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string,
 		return "", ErrAccountNotActive
 	}
 
-	if gid.String != g_id {
-		return "", ErrWrongId
+	if gid.String != gID {
+		return "", ErrWrongID
 	}
 
-	sessionId = uuid.NewString()
+	sessionID = uuid.NewString()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionId,
+			sessionID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -152,5 +152,5 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string,
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return sessionId, nil
+	return
 }

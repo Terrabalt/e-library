@@ -16,18 +16,18 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Email:    expId.Account,
+		Email:    expID.Account,
 		Password: "Password",
 	}
 
 	dbMock := &dBMock{}
 	dbMock.On("Login", login.Email, login.Password, expSessionLen).
-		Return(expId.Session, nil).Once()
+		Return(expID.Session, nil).Once()
 
 	expCode := http.StatusOK
 	expClaims := sessiontoken.TokenClaimsSchema{
-		Email:   expId.Account,
-		Session: expId.Session,
+		Email:   expID.Account,
+		Session: expID.Session,
 	}
 
 	r, w := mockRequest(t, path, login, false)
@@ -80,7 +80,7 @@ func TestFailedLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Email:    expId.Account,
+		Email:    expID.Account,
 		Password: "Passwor",
 	}
 
@@ -107,7 +107,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	path := "/auth/login"
 
 	login := loginPostRequest{
-		Email:    expId.Account,
+		Email:    expID.Account,
 		Password: "Password",
 	}
 
