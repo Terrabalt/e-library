@@ -36,16 +36,17 @@ func TestSuccessfulLoginPost(t *testing.T) {
 
 	resp := &tokenResponse{}
 	assert.Equal(t, expCode, w.Code, "A successful Post-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Post-Login didn't return a valid tokenResponse object")
-	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
-	assert.NoError(t, err, "A successful Post-Login didn't return a valid token")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Post-Login didn't return a valid tokenResponse object") {
+		token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
+		assert.NoError(t, err, "A successful Post-Login didn't return a valid token")
 
-	tokenMap, err := token.AsMap(context.Background())
-	if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
-		var claims sessiontoken.TokenClaimsSchema
-		err := claims.FromInterface(tokenMap)
+		tokenMap, err := token.AsMap(context.Background())
 		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
-			assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+			var claims sessiontoken.TokenClaimsSchema
+			err := claims.FromInterface(tokenMap)
+			if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+				assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+			}
 		}
 	}
 	dbMock.AssertExpectations(t)
@@ -71,8 +72,9 @@ func TestMalformedLoginPost(t *testing.T) {
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A malformed Post-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Post-Login didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A malformed Post-Login didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Post-Login didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A malformed Post-Login didn't return the proper error")
+	}
 	dbMock.AssertExpectations(t)
 }
 
@@ -98,8 +100,9 @@ func TestFailedLoginPost(t *testing.T) {
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A failed Post-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Post-Login didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A failed Post-Login didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Post-Login didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A failed Post-Login didn't return the proper error")
+	}
 	dbMock.AssertExpectations(t)
 }
 
@@ -125,7 +128,8 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A Post-Login on a not activated account didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A Post-Login on a not activated account didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A Post-Login on a not activated account didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A Post-Login on a not activated account didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A Post-Login on a not activated account didn't return the proper error")
+	}
 	dbMock.AssertExpectations(t)
 }
