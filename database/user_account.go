@@ -57,18 +57,18 @@ func init() {
 		DBStatement{
 			&registerStmt, `
 			INSERT INTO user_account (
-				email, password, name
+				email, password, activation_token, expires_in, name
 			)
 			VALUES
-				($1, $2, $3)`,
+				($1, $2, $3, $4, $5)`,
 		},
 		DBStatement{
 			&registerGoogleStmt, `
 			INSERT INTO user_account (
-				email, g_id, name
+				email, g_id, activation_token, expires_in, name
 			)
 			VALUES
-				($1, $2, $3)`,
+				($1, $2, $3, $4, $5)`,
 		},
 		DBStatement{
 			&refreshActivationStmt, `
@@ -201,6 +201,13 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 var ErrAccountExisted error = errors.New("account already existed")
 
 func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			activationToken = ""
+			validUntil = nil
+			err = rec.(runtime.Error)
+		}
+	}()
 
 	row := loginStmt.QueryRowContext(ctx, email)
 	if row.Err() == nil {
@@ -217,14 +224,26 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	if err != nil {
 		return "", nil, err
 	}
-	_, err = registerStmt.ExecContext(ctx, email, hash, name)
+
+	activationToken = uuid.NewString()
+	v := time.Now().Add(time.Minute * time.Duration(2))
+	validUntil = &v
+
+	_, err = registerStmt.ExecContext(ctx, email, hash, activationToken, validUntil, name)
 	if err != nil {
 		return "", nil, err
 	}
-	return db.RefreshActivation(ctx, email)
+	return
 }
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			activationToken = ""
+			validUntil = nil
+			err = rec.(runtime.Error)
+		}
+	}()
 
 	row := loginGoogleStmt.QueryRowContext(ctx, email)
 	if row.Err() == nil {
@@ -237,11 +256,17 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	} else if row.Err() != sql.ErrNoRows {
 		return "", nil, err
 	}
-	_, err = registerGoogleStmt.ExecContext(ctx, email, gID, name)
+
+	activationToken = uuid.NewString()
+	v := time.Now().Add(time.Minute * time.Duration(2))
+	validUntil = &v
+
+	_, err = registerGoogleStmt.ExecContext(ctx, email, gID, activationToken, validUntil, name)
 	if err != nil {
 		return "", nil, err
 	}
-	return db.RefreshActivation(ctx, email)
+
+	return
 }
 
 func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {

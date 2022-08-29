@@ -394,16 +394,12 @@ func TestSuccessfulRegister(t *testing.T) {
 	th := &testString{}
 	test1 := mock.ExpectPrepare("SELECT")
 	test2 := mock.ExpectPrepare("INSERT")
-	test3 := mock.ExpectPrepare("UPDATE")
 	test1.ExpectQuery().
 		WithArgs(expEmail).
 		WillReturnError(sql.ErrNoRows)
-	test2.ExpectExec().
-		WithArgs(expEmail, th, expName).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	tu := &testUUID{}
-	test3.ExpectExec().
-		WithArgs(tu, sqlmock.AnyArg(), expEmail).
+	test2.ExpectExec().
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg, expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
@@ -418,21 +414,11 @@ func TestSuccessfulRegister(t *testing.T) {
 
 	stmt, err = d.Prepare(`
 		INSERT INTO user_account (
-			email, password, name
+			email, password, activation_token, expires_in, name
 		)
 		VALUES
 			($1, $2, $3)`)
 	registerStmt = *stmt
-	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
-
-	stmt, err = d.Prepare(`
-		UPDATE user_account
-		SET 
-			activation_token = $1,
-			expires_in = $2
-		WHERE
-			email = $3`)
-	refreshActivationStmt = *stmt
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName)
 	assert.Nil(t, err, "unexpected error in a successful login test")
@@ -453,16 +439,12 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	th := &testString{}
 	test1 := mock.ExpectPrepare("SELECT")
 	test2 := mock.ExpectPrepare("INSERT")
-	test3 := mock.ExpectPrepare("UPDATE")
 	test1.ExpectQuery().
 		WithArgs(expEmail).
 		WillReturnError(sql.ErrNoRows)
-	test2.ExpectExec().
-		WithArgs(expEmail, th, expName).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	tu := &testUUID{}
-	test3.ExpectExec().
-		WithArgs(tu, sqlmock.AnyArg(), expEmail).
+	test2.ExpectExec().
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg, expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
@@ -477,22 +459,13 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 
 	stmt, err = d.Prepare(`
 		INSERT INTO user_account (
-			email, g_id, name
+			email, g_id, activation_token, expires_in, name
 		)
 		VALUES
 			($1, $2, $3)`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	registerGoogleStmt = *stmt
 
-	stmt, err = d.Prepare(`
-		UPDATE user_account
-		SET 
-			activation_token = $1,
-			expires_in = $2
-		WHERE
-			email = $3`)
-	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
-	refreshActivationStmt = *stmt
 	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName)
 	assert.Nil(t, err, "unexpected error in a successful login test")
 	assert.Equal(t, expGID, th.str, "function should've returned a correct google account id")
