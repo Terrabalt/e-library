@@ -49,8 +49,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
 	}
 
-	var email emailhelper.ActivationMailDriverInst
-	if err := envconfig.Process(context.Background(), &email); err != nil {
+	var email emailhelper.ActivationMailDriver
+	email, err := emailhelper.NewActivationMailHelper(context.Background())
+	if err != nil {
 		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
 	}
 
