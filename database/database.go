@@ -25,12 +25,7 @@ type DBInstance struct {
 	*sql.DB
 }
 
-type DBStatement struct {
-	Statement *sql.Stmt
-	Query     string
-}
-
-var prepareStatements []DBStatement
+var prepareStatements []*dbStatement
 
 func StartDB(dbInfo string) (DB, error) {
 	db, err := sql.Open("postgres", dbInfo)
@@ -83,19 +78,17 @@ func (db DBInstance) InitDB(ctx context.Context) error {
 	}
 
 	for _, stmt := range prepareStatements {
-		statement, err := db.Prepare(stmt.Query)
-		if err != nil {
+		if err := stmt.Prepare(ctx, db.DB); err != nil {
 			log.Error().Err(err).Str("query", stmt.Query).Msg("error preparing statements")
 			return err
 		}
-		*stmt.Statement = *statement
 	}
 	return nil
 }
 
 func (db DBInstance) CloseDB() {
 	for _, stmt := range prepareStatements {
-		if err := (*stmt.Statement).Close(); err != nil {
+		if err := stmt.Close(); err != nil {
 			log.Error().Err(err).Msg("error closing db")
 		}
 	}

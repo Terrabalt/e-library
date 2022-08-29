@@ -16,38 +16,38 @@ type UserAccountInterface interface {
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
 }
 
-var loginStmt sql.Stmt
-var loginGoogleStmt sql.Stmt
-var loginRefreshStmt sql.Stmt
+var loginStmt = dbStatement{
+	nil, `
+	SELECT 
+		password, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1`,
+}
+var loginGoogleStmt = dbStatement{
+	nil, `
+	SELECT 
+		g_id, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1`,
+}
+var loginRefreshStmt = dbStatement{
+	nil, `
+	INSERT INTO user_devices (
+		user_id, verifier, expires_in
+	)
+	VALUES
+		($1, $2, $3)`,
+}
 
 func init() {
 	prepareStatements = append(prepareStatements,
-		DBStatement{
-			&loginStmt, `
-			SELECT 
-				password, activated
-			FROM 
-				user_account 
-			WHERE 
-				email = $1`,
-		},
-		DBStatement{
-			&loginGoogleStmt, `
-			SELECT 
-				g_id, activated
-			FROM 
-				user_account 
-			WHERE 
-				email = $1`,
-		},
-		DBStatement{
-			&loginRefreshStmt, `
-			INSERT INTO user_devices (
-				user_id, verifier, expires_in
-			)
-			VALUES
-				($1, $2, $3)`,
-		},
+		&loginStmt,
+		&loginGoogleStmt,
+		&loginRefreshStmt,
 	)
 }
 
@@ -66,7 +66,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, &loginStmt).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, loginStmt.Statement).QueryRowContext(ctx, email)
 	if err := row.Scan(&hash, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
@@ -95,7 +95,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, &loginRefreshStmt).
+		StmtContext(ctx, loginRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -120,7 +120,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, &loginGoogleStmt).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, loginGoogleStmt.Statement).QueryRowContext(ctx, email)
 	if err := row.Scan(&gid, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
@@ -148,7 +148,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, &loginRefreshStmt).
+		StmtContext(ctx, loginRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
