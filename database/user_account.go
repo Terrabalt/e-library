@@ -87,14 +87,18 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 		return "", ErrWrongPass
 	}
 
-	sessionID = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+	sessionID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionID,
+			randomUUID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -136,14 +140,18 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 		return "", ErrWrongID
 	}
 
-	sessionID = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+	sessionID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionID,
+			randomUUID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
