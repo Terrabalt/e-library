@@ -13,7 +13,7 @@ import (
 type GTokenValidator interface {
 	ValidateGToken(ctx context.Context, token string) (*GoogleClaimsSchema, error)
 }
-type GTokenValidatorInst struct {
+type gTokenValidatorImpl struct {
 	tokenValidator *idtoken.Validator
 }
 
@@ -22,7 +22,7 @@ func NewGValidator(ctx context.Context) (GTokenValidator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("validator creation failed: %w", err)
 	}
-	return &GTokenValidatorInst{
+	return &gTokenValidatorImpl{
 		tokenValidator: idTokenVal,
 	}, nil
 }
@@ -36,7 +36,7 @@ type GoogleClaimsSchema struct {
 
 var ErrGoogleEmailUnverified = errors.New("google email unverified")
 
-func (v *GTokenValidatorInst) ValidateGToken(ctx context.Context, token string) (*GoogleClaimsSchema, error) {
+func (v *gTokenValidatorImpl) ValidateGToken(ctx context.Context, token string) (*GoogleClaimsSchema, error) {
 	tkn, err := v.tokenValidator.Validate(ctx, token, "")
 	if err != nil {
 		return nil, err
