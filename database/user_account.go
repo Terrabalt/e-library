@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"runtime"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,12 +87,6 @@ var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
 func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			sessionID = ""
-			err = errors.New(rec.(string))
-		}
-	}()
 	var hash sql.NullString
 	var activated bool
 
@@ -124,7 +117,11 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 		return "", ErrWrongPass
 	}
 
-	sessionID = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+	sessionID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
@@ -144,12 +141,6 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 }
 
 func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			sessionID = ""
-			err = errors.New(rec.(string))
-		}
-	}()
 	var gid sql.NullString
 	var activated bool
 
@@ -179,7 +170,11 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 		return "", ErrWrongID
 	}
 
-	sessionID = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+	sessionID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
@@ -201,14 +196,6 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 var ErrAccountExisted error = errors.New("account already existed")
 
 func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			activationToken = ""
-			validUntil = nil
-			err = rec.(runtime.Error)
-		}
-	}()
-
 	row := loginStmt.QueryRowContext(ctx, email)
 	if row.Err() == nil {
 		var hash sql.NullString
@@ -225,11 +212,16 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 		return "", nil, err
 	}
 
-	activationToken = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
+
 	v := time.Now().Add(time.Minute * time.Duration(2))
 	validUntil = &v
 
-	_, err = registerStmt.ExecContext(ctx, email, hash, activationToken, validUntil, name)
+	_, err = registerStmt.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -237,14 +229,6 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 }
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			activationToken = ""
-			validUntil = nil
-			err = rec.(runtime.Error)
-		}
-	}()
-
 	row := loginGoogleStmt.QueryRowContext(ctx, email)
 	if row.Err() == nil {
 		var gID sql.NullString
@@ -257,11 +241,16 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 		return "", nil, err
 	}
 
-	activationToken = uuid.NewString()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
+
 	v := time.Now().Add(time.Minute * time.Duration(2))
 	validUntil = &v
 
-	_, err = registerGoogleStmt.ExecContext(ctx, email, gID, activationToken, validUntil, name)
+	_, err = registerGoogleStmt.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -270,18 +259,15 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 }
 
 func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			activationToken = ""
-			validUntil = nil
-			err = rec.(runtime.Error)
-		}
-	}()
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
 
-	activationToken = uuid.NewString()
 	v := time.Now().Add(time.Minute * time.Duration(2))
 	validUntil = &v
-	_, err = refreshActivationStmt.ExecContext(ctx, activationToken, *validUntil, email)
+	_, err = refreshActivationStmt.ExecContext(ctx, randomUUID, *validUntil, email)
 	if err != nil {
 		return "", nil, err
 	}
