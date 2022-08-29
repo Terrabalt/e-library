@@ -71,11 +71,11 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (sess
 		return "", ErrAccountNotFound
 	}
 
-	if !activated {
-		return "", ErrAccountNotActive
+	if !hash.Valid {
+		return "", ErrAccountNotFound
 	}
 
-	if !hash.Valid {
+	if !activated {
 		return "", ErrAccountNotActive
 	}
 
@@ -118,11 +118,11 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 		return "", ErrAccountNotFound
 	}
 
-	if !activated {
-		return "", ErrAccountNotActive
+	if !gid.Valid {
+		return "", ErrAccountNotFound
 	}
 
-	if !gid.Valid {
+	if !activated {
 		return "", ErrAccountNotActive
 	}
 
