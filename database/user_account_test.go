@@ -399,7 +399,7 @@ func TestSuccessfulRegister(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	tu := &testUUID{}
 	test2.ExpectExec().
-		WithArgs(expEmail, th, tu, sqlmock.AnyArg, expName).
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
@@ -417,11 +417,11 @@ func TestSuccessfulRegister(t *testing.T) {
 			email, password, activation_token, expires_in, name
 		)
 		VALUES
-			($1, $2, $3)`)
+			($1, $2, $3, $4, $5)`)
 	registerStmt = *stmt
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName)
-	assert.Nil(t, err, "unexpected error in a successful login test")
+	assert.Nil(t, err, "unexpected error in a successful register test")
 	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(th.str), []byte(expPassword)), "function should've returned a correctly-hashed password")
 	assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -444,7 +444,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	tu := &testUUID{}
 	test2.ExpectExec().
-		WithArgs(expEmail, th, tu, sqlmock.AnyArg, expName).
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	stmt, err := d.Prepare(`
@@ -462,12 +462,12 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 			email, g_id, activation_token, expires_in, name
 		)
 		VALUES
-			($1, $2, $3)`)
+			($1, $2, $3, $4, $5)`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	registerGoogleStmt = *stmt
 
 	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName)
-	assert.Nil(t, err, "unexpected error in a successful login test")
+	assert.Nil(t, err, "unexpected error in a successful register-google test")
 	assert.Equal(t, expGID, th.str, "function should've returned a correct google account id")
 	assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	assert.Nil(t, mock.ExpectationsWereMet())

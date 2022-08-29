@@ -106,12 +106,18 @@ func (db dBMock) LoginGoogle(ctx context.Context, gID string, pass string, sessi
 
 func (db dBMock) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
 	args := db.Called(email, password, name)
-	return args.String(0), args.Get(1).(*time.Time), args.Error(2)
+	if args.Get(1) == nil {
+		return "", nil, args.Error(2)
+	}
+	return args.String(0), args.Get(1).(*time.Time), nil
 }
 
 func (db dBMock) RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error) {
 	args := db.Called(email, gId, name)
-	return args.String(0), args.Get(1).(*time.Time), args.Error(2)
+	if args.Get(1) == nil {
+		return "", nil, args.Error(2)
+	}
+	return args.String(0), args.Get(1).(*time.Time), nil
 }
 
 type gTokenValidatorMock struct {
