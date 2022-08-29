@@ -66,8 +66,8 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (sess
 	}
 	defer tx.Rollback()
 
-	cursor := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
-	if err := cursor.Scan(&hash, &activated); err != nil {
+	row := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
+	if err := row.Scan(&hash, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
 		}
@@ -116,8 +116,8 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 	}
 	defer tx.Rollback()
 
-	cursor := tx.StmtContext(ctx, loginGoogleStmt).QueryRowContext(ctx, email)
-	if err := cursor.Scan(&gid, &activated); err != nil {
+	row := tx.StmtContext(ctx, loginGoogleStmt).QueryRowContext(ctx, email)
+	if err := row.Scan(&gid, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
 		}
