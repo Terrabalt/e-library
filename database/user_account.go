@@ -128,7 +128,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionID,
+			randomUUID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -181,7 +181,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			sessionID,
+			randomUUID,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
