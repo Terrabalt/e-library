@@ -23,7 +23,7 @@ var loginRefreshStmt *sql.Stmt
 func init() {
 	prepareStatements = append(prepareStatements,
 		DBStatement{
-			&loginStmt, `
+			loginStmt, `
 			SELECT 
 				password, activated
 			FROM 
@@ -32,7 +32,7 @@ func init() {
 				email = $1`,
 		},
 		DBStatement{
-			&loginGoogleStmt, `
+			loginGoogleStmt, `
 			SELECT 
 				g_id, activated
 			FROM 
@@ -41,7 +41,7 @@ func init() {
 				email = $1`,
 		},
 		DBStatement{
-			&loginRefreshStmt, `
+			loginRefreshStmt, `
 			INSERT INTO user_devices (
 				user_id, verifier, expires_in
 			)

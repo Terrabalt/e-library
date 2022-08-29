@@ -17,6 +17,8 @@ import (
 
 type DB interface {
 	UserAccountInterface
+	InitDB(ctx context.Context) error
+	CloseDB()
 }
 
 type DBInstance struct {
@@ -24,23 +26,23 @@ type DBInstance struct {
 }
 
 type DBStatement struct {
-	Statement **sql.Stmt
+	Statement *sql.Stmt
 	Query     string
 }
 
 var prepareStatements []DBStatement
 
-func StartDB(dbInfo string) (DBInstance, error) {
+func StartDB(dbInfo string) (DB, error) {
 	db, err := sql.Open("postgres", dbInfo)
 	if err != nil {
-		return DBInstance{nil}, err
+		return nil, err
 	}
 
 	loggerAdapter := zerologadapter.New(log.Logger)
 	db = sqldblogger.OpenDriver(dbInfo, db.Driver(), loggerAdapter, sqldblogger.WithSQLQueryAsMessage(true))
 	err = db.Ping()
 	if err != nil {
-		return DBInstance{nil}, err
+		return nil, err
 	}
 
 	log.Info().Str("dsn", dbInfo).Msg("Database connected")
@@ -81,7 +83,7 @@ func (db DBInstance) InitDB(ctx context.Context) error {
 	}
 
 	for _, stmt := range prepareStatements {
-		if *stmt.Statement, err = db.Prepare(stmt.Query); err != nil {
+		if stmt.Statement, err = db.Prepare(stmt.Query); err != nil {
 			log.Error().Err(err).Str("query", stmt.Query).Msg("error preparing statements")
 			return err
 		}
