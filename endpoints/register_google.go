@@ -25,6 +25,7 @@ func (l *registerGoogleRequest) Bind(r *http.Request) error {
 }
 
 var errRegisterGoogleMalformed = errors.New("token missing")
+var errGoogleTokenFailed = errors.New("google token validation failed")
 
 func RegisterGoogle(
 	db database.UserAccountInterface,
@@ -46,7 +47,7 @@ func RegisterGoogle(
 		gClaims, err := gValidator.ValidateGToken(ctx, data.GoogleToken)
 		if err != nil {
 			log.Debug().Err(err).Str("token", data.GoogleToken).Msg("Google token validation failed")
-			render.Render(w, r, ValidationFailedError(ErrLoginFailed))
+			render.Render(w, r, ValidationFailedError(errGoogleTokenFailed))
 			return
 		}
 
