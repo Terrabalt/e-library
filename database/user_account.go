@@ -12,8 +12,8 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string) (id string, err error)
-	LoginGoogle(ctx context.Context, email string, pass string) (id string, err error)
+	Login(ctx context.Context, email string, pass string) (sessionId string, err error)
+	LoginGoogle(ctx context.Context, email string, pass string) (sessionId string, err error)
 }
 
 var loginStmt *sql.Stmt
@@ -56,8 +56,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongId error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-/// Logs the user in, and returns a new Session id with it
-func (db DBInstance) Login(ctx context.Context, email string, pass string) (id string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string) (sessionId string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -85,14 +84,14 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (id s
 		return "", ErrWrongPass
 	}
 
-	verifier := uuid.NewString()
+	sessionId = uuid.NewString()
 	expiresIn := time.Now().Add(time.Duration(48) * time.Hour)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			verifier,
+			sessionId,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -101,10 +100,10 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (id s
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return verifier, nil
+	return sessionId, nil
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string) (id string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string) (sessionId string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -131,14 +130,14 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 		return "", ErrWrongId
 	}
 
-	verifier := uuid.NewString()
+	sessionId = uuid.NewString()
 	expiresIn := time.Now().Add(time.Duration(48) * time.Hour)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).
 		ExecContext(ctx,
 			email,
-			verifier,
+			sessionId,
 			expiresIn.Format(time.RFC3339),
 		); err != nil {
 		return "", err
@@ -147,5 +146,5 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return verifier, nil
+	return sessionId, nil
 }
