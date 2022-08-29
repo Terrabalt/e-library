@@ -68,7 +68,10 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (sess
 
 	cursor := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
 	if err := cursor.Scan(&hash, &activated); err != nil {
-		return "", ErrAccountNotFound
+		if err == sql.ErrNoRows {
+			return "", ErrAccountNotFound
+		}
+		return "", err
 	}
 
 	if !hash.Valid {
@@ -115,7 +118,10 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 
 	cursor := tx.StmtContext(ctx, loginGoogleStmt).QueryRowContext(ctx, email)
 	if err := cursor.Scan(&gid, &activated); err != nil {
-		return "", ErrAccountNotFound
+		if err == sql.ErrNoRows {
+			return "", ErrAccountNotFound
+		}
+		return "", err
 	}
 
 	if !gid.Valid {
