@@ -15,8 +15,8 @@ import (
 
 type registerPostRequest struct {
 	Name     string `json:"name"`
-	Email    string `json:"username"` // User login ID.
-	Password string `json:"password"` // Password to verify.
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (l *registerPostRequest) Bind(r *http.Request) error {
