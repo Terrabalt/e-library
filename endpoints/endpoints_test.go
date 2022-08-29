@@ -40,9 +40,7 @@ var tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
 const expSessionLen = time.Hour * time.Duration(48)
 const expTokenLen = time.Minute * time.Duration(10)
 
-func mockRequest(t *testing.T, path string, body interface{}, withToken bool, params ...param) (*http.Request, *httptest.ResponseRecorder) {
-	var r *http.Request
-
+func mockRequest(t *testing.T, path string, body interface{}, withToken bool, params ...param) (*httptest.ResponseRecorder, *http.Request) {
 	var req io.Reader = nil
 	if body != nil {
 		js, err := json.Marshal(body)
@@ -52,7 +50,7 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 
 		req = bytes.NewBuffer(js)
 	}
-	r = httptest.NewRequest(http.MethodPost, path, req)
+	r := httptest.NewRequest(http.MethodPost, path, req)
 	w := httptest.NewRecorder()
 	r.Header.Add("Content-Type", "application/json")
 
@@ -68,7 +66,7 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 	}
 
 	r = r.WithContext(ctx)
-	return r, w
+	return w, r
 }
 
 func constToken(t *testing.T, tokenAuth *jwtauth.JWTAuth, email, session string) (jwt.Token, string, error) {

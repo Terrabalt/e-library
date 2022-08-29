@@ -30,7 +30,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 		Session: expID.Session,
 	}
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
@@ -65,7 +65,7 @@ func TestMalformedLoginPost(t *testing.T) {
 	expResp, expCode := BadRequestError(ErrLoginPostMalformed).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
@@ -93,7 +93,7 @@ func TestFailedLoginPost(t *testing.T) {
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
@@ -121,7 +121,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 

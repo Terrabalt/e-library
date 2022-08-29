@@ -41,7 +41,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 
 	expCode := http.StatusCreated
 
-	r, w := mockRequest(t, path, reg, false)
+	w, r := mockRequest(t, path, reg, false)
 	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
 	handler.ServeHTTP(w, r)
 
@@ -69,7 +69,7 @@ func TestMalformedRegisterGoogle(t *testing.T) {
 
 	expResp, expCode := BadRequestError(errRegisterGoogleMalformed).(*ErrorResponse).sentForm()
 
-	r, w := mockRequest(t, path, reg, false)
+	w, r := mockRequest(t, path, reg, false)
 	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
 	handler.ServeHTTP(w, r)
 
@@ -99,7 +99,7 @@ func TestNonValidatedRegisterGoogle(t *testing.T) {
 
 	expResp, expCode := ValidationFailedError(errGoogleTokenFailed).(*ErrorResponse).sentForm()
 
-	r, w := mockRequest(t, path, reg, false)
+	w, r := mockRequest(t, path, reg, false)
 	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
 	handler.ServeHTTP(w, r)
 
@@ -138,7 +138,7 @@ func TestAlreadyRegisteredGoogle(t *testing.T) {
 
 	expResp, expCode := RequestConflictError(errAccountAlreadyRegistered).(*ErrorResponse).sentForm()
 
-	r, w := mockRequest(t, path, reg, false)
+	w, r := mockRequest(t, path, reg, false)
 	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
 	handler.ServeHTTP(w, r)
 
