@@ -64,6 +64,7 @@ func main() {
 	if err := db.InitDB(context.Background()); err != nil {
 		log.Panic().Err(err).Msg("Error initializing database")
 	}
+	defer db.CloseDB()
 
 	gValidator, err := googlehelper.NewGValidator(context.Background())
 	if err != nil {
@@ -87,5 +88,4 @@ func main() {
 	log.Info().Int("Server port", config.Port).Msg("Server started")
 	log.Debug().Interface("test", config).Send()
 	log.Info().Err(http.ListenAndServe(":"+strconv.Itoa(config.Port), r)).Msg("Server stopped")
-	db.CloseDB()
 }
