@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
@@ -33,6 +34,9 @@ type param struct {
 }
 
 var tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
+
+const expSessionLen = time.Hour * time.Duration(48)
+const expTokenLen = time.Minute * time.Duration(10)
 
 func mockRequest(t *testing.T, path string, body interface{}, withToken bool, params ...param) (*http.Request, *httptest.ResponseRecorder) {
 	var r *http.Request
@@ -88,13 +92,13 @@ type dBMock struct {
 	mock.Mock
 }
 
-func (db dBMock) Login(ctx context.Context, email string, pass string) (id string, err error) {
-	args := db.Called(email, pass)
+func (db dBMock) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (id string, err error) {
+	args := db.Called(email, pass, sessionLength)
 	return args.String(0), args.Error(1)
 }
 
-func (db dBMock) LoginGoogle(ctx context.Context, g_id string, pass string) (id string, err error) {
-	args := db.Called(g_id, pass)
+func (db dBMock) LoginGoogle(ctx context.Context, g_id string, pass string, sessionLength time.Duration) (id string, err error) {
+	args := db.Called(g_id, pass, sessionLength)
 	return args.String(0), args.Error(1)
 }
 

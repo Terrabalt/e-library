@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -87,7 +88,7 @@ func TestSuccessfulLogin(t *testing.T) {
 			VALUES
 				($1, $2, $3)`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
-	id, err := db.Login(ctx, expEmail, expPassword)
+	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Nil(t, err, "unexpected error in a successful login test")
 	assert.Equal(t, tu.uuid, id, "function should've returned a new session id")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -117,7 +118,7 @@ func TestNotFoundLogin(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword)
+	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrAccountNotFound, err, "function should've returned an ErrAccountNotFound error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -156,7 +157,7 @@ func TestNotActiveLogin(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword)
+	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrAccountNotActive, err, "function should've returned ErrAccountNotActive error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -195,7 +196,7 @@ func TestFailedLogins(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.Login(ctx, expEmail, expPassword)
+	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrWrongPass, err, "function should've returned ErrWrongPass error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -244,7 +245,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 				($1, $2, $3)`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	id, err := db.LoginGoogle(ctx, expEmail, expGId, time.Duration(48)*time.Hour)
 	assert.Nil(t, err, "unexpected error in a successful login test")
 	assert.Equal(t, tu.uuid, id, "function should've returned a new session id")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -274,7 +275,7 @@ func TestNotFoundLoginGoogle(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	id, err := db.LoginGoogle(ctx, expEmail, expGId, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrAccountNotFound, err, "function should've returned an ErrAccountNotFound error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -310,7 +311,7 @@ func TestNotActiveLoginGoogle(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	id, err := db.LoginGoogle(ctx, expEmail, expGId, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrAccountNotActive, err, "function should've returned ErrAccountNotActive error")
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -346,7 +347,7 @@ func TestFailedLoginsGoogle(t *testing.T) {
 			email = $1`)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	id, err := db.LoginGoogle(ctx, expEmail, expGId)
+	id, err := db.LoginGoogle(ctx, expEmail, expGId, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrWrongId, err, "function should've returned ErrWrongPass error")
 	assert.Nil(t, mock.ExpectationsWereMet())

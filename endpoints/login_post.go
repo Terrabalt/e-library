@@ -29,7 +29,12 @@ var ErrLoginAccountNotActive = errors.New("account has not been activated yet")
 var ErrLoginFailed = errors.New("login failed")
 var ErrLoginPostMalformed = errors.New("username or password missing")
 
-func LoginPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) http.HandlerFunc {
+func LoginPost(
+	db database.UserAccountInterface,
+	sessionAuth *jwtauth.JWTAuth,
+	sessionLength time.Duration,
+	tokenLength time.Duration,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()
@@ -41,7 +46,7 @@ func LoginPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) h
 			return
 		}
 
-		session, err := db.Login(ctx, data.Email, data.Password)
+		session, err := db.Login(ctx, data.Email, data.Password, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -61,6 +66,7 @@ func LoginPost(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth) h
 				Email:   data.Email,
 				Session: session,
 			},
+			tokenLength,
 		)
 		if err != nil {
 			log.Error().Err(err).Msg("Error encoding new token")

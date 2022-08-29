@@ -20,13 +20,19 @@ import (
 )
 
 type Config struct {
-	JWTSecret string `env:"JWTSECRET"`
-	PgHost    string `env:"PG_HOST"`
-	PgPort    int    `env:"PG_PORT"`
-	PgUser    string `env:"PG_USER"`
-	PgPass    string `env:"PG_PASS"`
-	PgDB      string `env:"PG_DB"`
-	Port      int    `env:"PORT,required"`
+	JWTSecret    string       `env:"JWTSECRET"`
+	PgHost       string       `env:"PG_HOST"`
+	PgPort       int          `env:"PG_PORT"`
+	PgUser       string       `env:"PG_USER"`
+	PgPass       string       `env:"PG_PASS"`
+	PgDB         string       `env:"PG_DB"`
+	Port         int          `env:"PORT,required"`
+	LoginLengths LoginLengths `env:""`
+}
+
+type LoginLengths struct {
+	TokenLength   time.Duration `env:"TOKEN_DURATION"`
+	SessionLength time.Duration `env:"SESSION_DURATION"`
 }
 
 func main() {
@@ -65,6 +71,8 @@ func main() {
 		return
 	}
 
+	sessionLength := config.LoginLengths.SessionLength
+	tokenLength := config.LoginLengths.TokenLength
 	r := chi.NewRouter()
 
 	r.Use(middleware.CleanPath)
@@ -72,11 +80,12 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/login", endpoints.LoginPost(db, sessionAuth))
-		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator))
+		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
+		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
 	})
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
+	log.Debug().Interface("test", config).Send()
 	log.Info().Err(http.ListenAndServe(":"+strconv.Itoa(config.Port), r)).Msg("Server stopped")
 	db.CloseDB()
 }

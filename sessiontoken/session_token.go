@@ -39,7 +39,7 @@ func (token *TokenClaimsSchema) FromInterface(inter map[string]interface{}) erro
 	return nil
 }
 
-func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema) (token jwt.Token, tokenString string, err error) {
+func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema, tokenLength time.Duration) (token jwt.Token, tokenString string, err error) {
 	c, err := claims.ToInterface()
 	if err != nil {
 		return nil, "", err
@@ -48,7 +48,7 @@ func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema)
 	now := time.Now()
 	jwtauth.SetIssuedAt(c, now)
 	c["nbf"] = now.UTC().Unix()
-	jwtauth.SetExpiryIn(c, time.Duration(2)*time.Hour)
+	jwtauth.SetExpiryIn(c, tokenLength)
 
 	return tokenAuth.Encode(c)
 }

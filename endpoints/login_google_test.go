@@ -33,7 +33,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		Return(&expGClaims, nil).Once()
 
 	dbMock := &dBMock{}
-	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId, expSessionLen).
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
@@ -43,7 +43,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	}
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
@@ -79,7 +79,7 @@ func TestMalformedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -108,7 +108,7 @@ func TestTokenFailedLoginGoogle(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -141,14 +141,14 @@ func TestFailedLoginGoogle(t *testing.T) {
 		Return(&expGClaims, nil).Once()
 
 	dbMock := &dBMock{}
-	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId, expSessionLen).
 		Return("", database.ErrAccountNotFound).Once()
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -179,14 +179,14 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 		Return(&expGClaims, nil).Once()
 
 	dbMock := &dBMock{}
-	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId).
+	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountId, expSessionLen).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock)
+	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}

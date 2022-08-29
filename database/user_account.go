@@ -12,8 +12,8 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string) (sessionId string, err error)
-	LoginGoogle(ctx context.Context, email string, pass string) (sessionId string, err error)
+	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error)
+	LoginGoogle(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error)
 }
 
 var loginStmt *sql.Stmt
@@ -56,7 +56,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongId error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-func (db DBInstance) Login(ctx context.Context, email string, pass string) (sessionId string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionId string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -88,7 +88,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (sess
 	}
 
 	sessionId = uuid.NewString()
-	expiresIn := time.Now().Add(time.Duration(48) * time.Hour)
+	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).
@@ -106,7 +106,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string) (sess
 	return sessionId, nil
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string) (sessionId string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string, sessionLength time.Duration) (sessionId string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -137,7 +137,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, g_id string)
 	}
 
 	sessionId = uuid.NewString()
-	expiresIn := time.Now().Add(time.Duration(48) * time.Hour)
+	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
 		StmtContext(ctx, loginRefreshStmt).

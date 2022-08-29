@@ -27,7 +27,13 @@ func (l *loginGoogleRequest) Bind(r *http.Request) error {
 
 var ErrLoginGoogleMalformed = errors.New("token missing")
 
-func LoginGoogle(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth, gValidator googlehelper.GTokenValidator) http.HandlerFunc {
+func LoginGoogle(
+	db database.UserAccountInterface,
+	sessionAuth *jwtauth.JWTAuth,
+	gValidator googlehelper.GTokenValidator,
+	sessionLength time.Duration,
+	tokenLength time.Duration,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ctx := r.Context()
@@ -45,7 +51,7 @@ func LoginGoogle(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth,
 			return
 		}
 
-		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountId)
+		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountId, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -65,6 +71,7 @@ func LoginGoogle(db database.UserAccountInterface, sessionAuth *jwtauth.JWTAuth,
 				Email:   gClaims.Email,
 				Session: session,
 			},
+			tokenLength,
 		)
 		if err != nil {
 			log.Error().Err(err).Msg("Error encoding new token")

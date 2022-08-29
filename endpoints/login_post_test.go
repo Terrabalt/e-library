@@ -21,7 +21,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password).
+	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return(expId.Session, nil).Once()
 
 	expCode := http.StatusOK
@@ -31,7 +31,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 	}
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPost(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
@@ -65,7 +65,7 @@ func TestMalformedLoginPost(t *testing.T) {
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPost(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -85,14 +85,14 @@ func TestFailedLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password).
+	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return("", database.ErrAccountNotFound).Once()
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPost(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -112,14 +112,14 @@ func TestNotActivatedLoginPost(t *testing.T) {
 	}
 
 	dbMock := &dBMock{}
-	dbMock.On("Login", login.Email, login.Password).
+	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
 	r, w := mockRequest(t, path, login, false)
-	handler := LoginPost(dbMock, tokenAuth)
+	handler := LoginPost(dbMock, tokenAuth, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
