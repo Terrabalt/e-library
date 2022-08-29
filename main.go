@@ -87,5 +87,9 @@ func main() {
 
 	log.Info().Int("Server port", config.Port).Msg("Server started")
 	log.Debug().Interface("test", config).Send()
-	log.Info().Err(http.ListenAndServe(":"+strconv.Itoa(config.Port), r)).Msg("Server stopped")
+	if err = http.ListenAndServe(":"+strconv.Itoa(config.Port), r); err != http.ErrServerClosed {
+		log.Error().Err(err).Msg("Server stopped with error")
+	} else {
+		log.Info().Msg("Server stopped normally")
+	}
 }
