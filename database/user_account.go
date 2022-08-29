@@ -19,17 +19,17 @@ type UserAccountInterface interface {
 	RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error)
 }
 
-var loginStmt *sql.Stmt
-var loginGoogleStmt *sql.Stmt
-var loginRefreshStmt *sql.Stmt
-var registerStmt *sql.Stmt
-var registerGoogleStmt *sql.Stmt
-var refreshActivationStmt *sql.Stmt
+var loginStmt sql.Stmt
+var loginGoogleStmt sql.Stmt
+var loginRefreshStmt sql.Stmt
+var registerStmt sql.Stmt
+var registerGoogleStmt sql.Stmt
+var refreshActivationStmt sql.Stmt
 
 func init() {
 	prepareStatements = append(prepareStatements,
 		DBStatement{
-			loginStmt, `
+			&loginStmt, `
 			SELECT 
 				password, activated
 			FROM 
@@ -38,7 +38,7 @@ func init() {
 				email = $1`,
 		},
 		DBStatement{
-			loginGoogleStmt, `
+			&loginGoogleStmt, `
 			SELECT 
 				g_id, activated
 			FROM 
@@ -47,7 +47,7 @@ func init() {
 				email = $1`,
 		},
 		DBStatement{
-			loginRefreshStmt, `
+			&loginRefreshStmt, `
 			INSERT INTO user_devices (
 				user_id, verifier, expires_in
 			)
@@ -55,7 +55,7 @@ func init() {
 				($1, $2, $3)`,
 		},
 		DBStatement{
-			registerStmt, `
+			&registerStmt, `
 			INSERT INTO user_account (
 				email, password, name
 			)
@@ -63,7 +63,7 @@ func init() {
 				($1, $2, $3)`,
 		},
 		DBStatement{
-			registerGoogleStmt, `
+			&registerGoogleStmt, `
 			INSERT INTO user_account (
 				email, g_id, name
 			)
@@ -71,7 +71,7 @@ func init() {
 				($1, $2, $3)`,
 		},
 		DBStatement{
-			refreshActivationStmt, `
+			&refreshActivationStmt, `
 			UPDATE user_account
 			SET 
 				activation_token = $1,
@@ -103,7 +103,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, loginStmt).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, &loginStmt).QueryRowContext(ctx, email)
 	if err := row.Scan(&hash, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
@@ -128,7 +128,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt).
+		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
 			sessionID,
@@ -159,7 +159,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, loginGoogleStmt).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, &loginGoogleStmt).QueryRowContext(ctx, email)
 	if err := row.Scan(&gid, &activated); err != nil {
 		if err == sql.ErrNoRows {
 			return "", ErrAccountNotFound
@@ -183,7 +183,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt).
+		StmtContext(ctx, &loginRefreshStmt).
 		ExecContext(ctx,
 			email,
 			sessionID,
@@ -211,7 +211,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 }
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
-	_, err = registerStmt.ExecContext(ctx, email, gID, name)
+	_, err = registerGoogleStmt.ExecContext(ctx, email, gID, name)
 	if err != nil {
 		return "", nil, err
 	}

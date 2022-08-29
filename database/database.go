@@ -83,10 +83,12 @@ func (db DBInstance) InitDB(ctx context.Context) error {
 	}
 
 	for _, stmt := range prepareStatements {
-		if stmt.Statement, err = db.Prepare(stmt.Query); err != nil {
+		statement, err := db.Prepare(stmt.Query)
+		if err != nil {
 			log.Error().Err(err).Str("query", stmt.Query).Msg("error preparing statements")
 			return err
 		}
+		*stmt.Statement = *statement
 	}
 	return nil
 }
