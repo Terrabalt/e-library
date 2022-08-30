@@ -102,9 +102,10 @@ func RegisterPost(
 		}
 
 		if err := email.SendActivationEmail(data.Email, activationToken, *validUntil); err != nil {
-			log.Debug().Err(err).Str("email", data.Email).Str("Activation Token", activationToken).Msg("Registering failed")
-			render.Render(w, r, InternalServerError())
-			return
+			log.Error().Err(err).
+				Str("email", data.Email).
+				Str("Activation Token", activationToken).
+				Msg("Sending account activation email failed")
 		}
 
 		render.Render(w, r, &registerResponse{NewId: data.Email})
