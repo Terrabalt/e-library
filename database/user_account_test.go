@@ -89,23 +89,10 @@ func TestSuccessfulLogin(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			password, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginStmt = *stmt
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	stmt, err = d.Prepare(`
-			INSERT INTO user_devices (
-				user_id, verifier, expires_in
-			)
-			VALUES
-				($1, $2, $3)`)
-	loginRefreshStmt = *stmt
+	err = loginRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Nil(t, err, "unexpected error in a successful login test")
@@ -128,14 +115,7 @@ func TestNotFoundLogin(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			password, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginStmt = *stmt
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -168,14 +148,7 @@ func TestNotActiveLogin(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			password, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginStmt = *stmt
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -208,14 +181,7 @@ func TestFailedLogins(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			password, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginStmt = *stmt
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -250,23 +216,10 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			g_id, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginGoogleStmt = *stmt
+	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	stmt, err = d.Prepare(`
-			INSERT INTO user_devices (
-				user_id, verifier, expires_in
-			)
-			VALUES
-				($1, $2, $3)`)
-	loginRefreshStmt = *stmt
+	err = loginRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)
@@ -290,14 +243,7 @@ func TestNotFoundLoginGoogle(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			g_id, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginGoogleStmt = *stmt
+	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)
@@ -327,14 +273,7 @@ func TestNotActiveLoginGoogle(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			g_id, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginGoogleStmt = *stmt
+	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)
@@ -364,14 +303,7 @@ func TestFailedLoginsGoogle(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			g_id, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginGoogleStmt = *stmt
+	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)
@@ -401,31 +333,18 @@ func TestSuccessfulRegister(t *testing.T) {
 	test2.ExpectExec().
 		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(th.str), []byte(expPassword)), "function should've returned a correctly-hashed password")
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			password, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginStmt = *stmt
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	stmt, err = d.Prepare(`
-		INSERT INTO user_account (
-			email, password, activation_token, expires_in, name
-		)
-		VALUES
-			($1, $2, $3, $4, $5)`)
-	registerStmt = *stmt
+	err = registerStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName)
 	if assert.Nil(t, err, "unexpected error in a successful register test") {
 		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	}
+	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(th.str), []byte(expPassword)), "function should've returned a correctly-hashed password")
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
 
@@ -448,30 +367,17 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	test2.ExpectExec().
 		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	assert.Equal(t, expGID, th.str, "function should've returned a correct google account id")
 
-	stmt, err := d.Prepare(`
-		SELECT 
-			g_id, activated
-		FROM 
-			user_account 
-		WHERE 
-			email = $1`)
-	loginGoogleStmt = *stmt
+	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	stmt, err = d.Prepare(`
-		INSERT INTO user_account (
-			email, g_id, activation_token, expires_in, name
-		)
-		VALUES
-			($1, $2, $3, $4, $5)`)
+	err = registerGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
-	registerGoogleStmt = *stmt
 
 	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName)
 	if assert.Nil(t, err, "unexpected error in a successful register-google test") {
 		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	}
+	assert.Equal(t, expGID, th.str, "function should've returned a correct google account id")
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
