@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSuccessfulLoginGoogle(t *testing.T) {
@@ -28,11 +29,11 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return(expID.Session, nil).Once()
 
@@ -73,8 +74,8 @@ func TestMalformedLoginGoogle(t *testing.T) {
 		Password: "Password",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
-	dbMock := &dBMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
+	dbMock := dBMock{&mock.Mock{}}
 
 	expResp, expCode := BadRequestError(ErrLoginGoogleMalformed).(*ErrorResponse).
 		sentForm()
@@ -100,11 +101,11 @@ func TestTokenFailedLoginGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(nil, errors.New("password wrong, should be xxxxx")).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
@@ -138,12 +139,12 @@ func TestFailedLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return("", database.ErrAccountNotFound).Once()
 
@@ -178,11 +179,11 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return("", database.ErrAccountNotActive).Once()
 

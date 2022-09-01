@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSuccessfulRegisterGoogle(t *testing.T) {
@@ -26,16 +27,16 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", reg.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
 	expTime := time.Now().Add(time.Minute * time.Duration(2))
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName).
 		Return(expID.AccountActivation, &expTime, nil).Once()
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 	mailMock.On("SendActivationEmail", expGClaims.Email, expID.AccountActivation, expTime).
 		Return(nil)
 
@@ -61,11 +62,11 @@ func TestMalformedRegisterGoogle(t *testing.T) {
 		GoogleToken: "",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 
 	expResp, expCode := BadRequestError(errRegisterGoogleMalformed).(*ErrorResponse).sentForm()
 
@@ -89,13 +90,13 @@ func TestNonValidatedRegisterGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", reg.GoogleToken).
 		Return(nil, errors.New("")).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 
 	expResp, expCode := ValidationFailedError(errGoogleTokenFailed).(*ErrorResponse).sentForm()
 
@@ -126,15 +127,15 @@ func TestAlreadyRegisteredGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", reg.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName).
 		Return("", nil, database.ErrAccountExisted).Once()
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 
 	expResp, expCode := RequestConflictError(errAccountAlreadyRegistered).(*ErrorResponse).sentForm()
 

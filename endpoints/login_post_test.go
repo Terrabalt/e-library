@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSuccessfulLoginPost(t *testing.T) {
@@ -20,7 +21,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return(expID.Session, nil).Once()
 
@@ -60,7 +61,7 @@ func TestMalformedLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
 	expResp, expCode := BadRequestError(ErrLoginPostMalformed).(*ErrorResponse).
 		sentForm()
@@ -86,7 +87,7 @@ func TestFailedLoginPost(t *testing.T) {
 		Password: "Passwor",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return("", database.ErrAccountNotFound).Once()
 
@@ -114,7 +115,7 @@ func TestNotActivatedLoginPost(t *testing.T) {
 		Password: "Password",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("Login", login.Email, login.Password, expSessionLen).
 		Return("", database.ErrAccountNotActive).Once()
 

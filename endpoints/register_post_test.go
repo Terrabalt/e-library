@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSuccessfulRegister(t *testing.T) {
@@ -20,11 +21,11 @@ func TestSuccessfulRegister(t *testing.T) {
 	}
 
 	expTime := time.Now().Add(time.Minute * time.Duration(2))
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("Register", reg.Email, reg.Password, reg.Name).
 		Return(expID.AccountActivation, &expTime, nil).Once()
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 	mailMock.On("SendActivationEmail", reg.Email, expID.AccountActivation, expTime).
 		Return(nil)
 
@@ -51,9 +52,9 @@ func TestMalformedRegistered(t *testing.T) {
 		Name:     "Joko",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 
 	expResp, expCode := BadRequestError(errEmailMalformed).(*ErrorResponse).sentForm()
 
@@ -161,11 +162,11 @@ func TestAlreadyRegistered(t *testing.T) {
 		Name:     "Joko",
 	}
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("Register", reg.Email, reg.Password, reg.Name).
 		Return("", nil, database.ErrAccountExisted).Once()
 
-	mailMock := &activationMailDriverMock{}
+	mailMock := activationMailDriverMock{&mock.Mock{}}
 
 	expResp, expCode := RequestConflictError(errAccountAlreadyRegistered).(*ErrorResponse).sentForm()
 
