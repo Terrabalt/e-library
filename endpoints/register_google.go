@@ -69,6 +69,6 @@ func RegisterGoogle(
 				Msg("Sending account activation email failed")
 		}
 
-		render.Render(w, r, &registerResponse{NewId: gClaims.Email})
+		render.Render(w, r, &registerResponse{NewID: gClaims.Email})
 	}
 }

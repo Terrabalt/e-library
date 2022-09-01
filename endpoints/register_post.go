@@ -56,7 +56,7 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 }
 
 type registerResponse struct {
-	NewId string `json:"new_id"`
+	NewID string `json:"new_id"`
 }
 
 func (reg *registerResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -108,6 +108,6 @@ func RegisterPost(
 				Msg("Sending account activation email failed")
 		}
 
-		render.Render(w, r, &registerResponse{NewId: data.Email})
+		render.Render(w, r, &registerResponse{NewID: data.Email})
 	}
 }

@@ -48,7 +48,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	resp := &registerResponse{}
 	assert.Equal(t, expCode, w.Code, "A malformed Google-Register didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Google-Register didn't return a valid registerResponse object")
-	assert.Equal(t, expGClaims.Email, resp.NewId, "A malformed Google-Register didn't return a valid response")
+	assert.Equal(t, expGClaims.Email, resp.NewID, "A malformed Google-Register didn't return a valid response")
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 	mailMock.AssertExpectations(t)

@@ -37,7 +37,7 @@ func TestSuccessfulRegister(t *testing.T) {
 	resp := &registerResponse{}
 	assert.Equal(t, expCode, w.Code, "A successful Post-Register didn't return the proper response code")
 	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Post-Register didn't return a valid registerResponse object")
-	assert.Equal(t, reg.Email, resp.NewId, "A successful Post-Register didn't return a valid response")
+	assert.Equal(t, reg.Email, resp.NewID, "A successful Post-Register didn't return a valid response")
 	dbMock.AssertExpectations(t)
 	mailMock.AssertExpectations(t)
 }

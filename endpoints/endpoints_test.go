@@ -89,7 +89,7 @@ func (e ErrorResponse) sentForm() (ErrorResponse, int) {
 }
 
 type dBMock struct {
-	mock.Mock
+	*mock.Mock
 }
 
 func (db dBMock) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (id string, err error) {
@@ -110,8 +110,8 @@ func (db dBMock) Register(ctx context.Context, email string, password string, na
 	return args.String(0), args.Get(1).(*time.Time), nil
 }
 
-func (db dBMock) RegisterGoogle(ctx context.Context, email string, gId string, name string) (activationToken string, validUntil *time.Time, err error) {
-	args := db.Called(email, gId, name)
+func (db dBMock) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
+	args := db.Called(email, gID, name)
 	if args.Get(1) == nil {
 		return "", nil, args.Error(2)
 	}
@@ -119,7 +119,7 @@ func (db dBMock) RegisterGoogle(ctx context.Context, email string, gId string, n
 }
 
 type gTokenValidatorMock struct {
-	mock.Mock
+	*mock.Mock
 }
 
 func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (*googlehelper.GoogleClaimsSchema, error) {
@@ -131,7 +131,7 @@ func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (
 }
 
 type activationMailDriverMock struct {
-	mock.Mock
+	*mock.Mock
 }
 
 func (mail activationMailDriverMock) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
