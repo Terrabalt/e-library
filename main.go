@@ -98,6 +98,8 @@ func main() {
 		r.Use(jwtauth.Verifier(sessionAuth))
 		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
 
+		r.Get("/books/new/homepage", endpoints.HomepageListNewBooks(db))
+		r.Get("/books/new/more", endpoints.ListMoreNewBooks(db))
 	})
 
 	log.Info().Int("Server port", conf.Port).Msg("Server started")
