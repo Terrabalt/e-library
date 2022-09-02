@@ -108,6 +108,155 @@ response - 400 Bad Request; 422 Validation Failed
 }
 ```
 
+### /books/new/homepage:
+
+header -
+```
+Authorization: Bearer ...
+```
+response - 200 OK
+```json
+{
+    "data": [
+        {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "title": "Chäos;HEĀd",
+            "author": "Hayashi Naotaka",
+            "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
+            "readers": 0,
+            "is_favorite": false
+        },
+    ]
+}
+```
+response - 422 Validation Failed
+```json
+{
+    "error_type": "Validation Failed",
+    "message": "error-message"
+}
+```
+
+### /books/popular/homepage:
+
+header -
+```
+Authorization: Bearer ...
+```
+response - 200 OK
+```json
+{
+    "data": [
+        {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "title": "Chäos;HEĀd",
+            "author": "Hayashi Naotaka",
+            "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
+            "readers": 0,
+            "is_favorite": false
+        },
+    ]
+}
+```
+response - 422 Validation Failed
+```json
+{
+    "error_type": "Validation Failed",
+    "message": "error-message"
+}
+```
+
+### /books/new/more:
+
+header -
+```
+Authorization: Bearer ...
+```
+response - 200 OK
+```json
+{
+    "data": [
+        {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "title": "Chäos;HEĀd",
+            "author": "Hayashi Naotaka",
+            "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
+            "readers": 0,
+            "is_favorite": false
+        },
+    ]
+}
+```
+response - 422 Validation Failed
+```json
+{
+    "error_type": "Validation Failed",
+    "message": "error-message"
+}
+```
+
+### /books/new/more:
+
+header -
+```
+Authorization: Bearer ...
+```
+response - 200 OK
+```json
+{
+    "data": [
+        {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "title": "Chäos;HEĀd",
+            "author": "Hayashi Naotaka",
+            "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
+            "readers": 0,
+            "is_favorite": false
+        },
+    ]
+}
+```
+response - 422 Validation Failed
+```json
+{
+    "error_type": "Validation Failed",
+    "message": "error-message"
+}
+```
+
+### /books/search?query=...:
+
+header -
+```
+Authorization: Bearer ...
+```
+query -
+```
+query= text
+```
+response - 200 OK
+```json
+{
+    "data": [
+        {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "title": "Chäos;HEĀd",
+            "author": "Hayashi Naotaka",
+            "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
+            "readers": 0,
+            "is_favorite": false
+        },
+    ]
+}
+```
+response - 400 Bad Request; 422 Validation Failed
+```json
+{
+    "error_type": "Bad Request",
+    "message": "error-message"
+}
+```
+
 ## Modules used:
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/go-chi/chi/v5@v5.0.7.svg)](https://pkg.go.dev/github.com/go-chi/chi/v5@v5.0.7)
