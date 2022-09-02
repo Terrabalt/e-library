@@ -94,6 +94,12 @@ func main() {
 		r.Post("/register/google", endpoints.RegisterGoogle(db, sessionAuth, gValidator, email))
 	})
 
+	r.Group(func(r chi.Router) {
+		r.Use(jwtauth.Verifier(sessionAuth))
+		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
+
+	})
+
 	log.Info().Int("Server port", conf.Port).Msg("Server started")
 	if err = http.ListenAndServe(":"+strconv.Itoa(conf.Port), r); err != http.ErrServerClosed {
 		log.Error().Err(err).Msg("Server stopped with error")
