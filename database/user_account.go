@@ -38,8 +38,8 @@ var loginGoogleStmt = dbStatement{
 }
 var loginRefreshStmt = dbStatement{
 	nil, `
-	INSERT INTO user_devices (
-		user_id, verifier, expires_in
+	INSERT INTO user_session (
+		user_id, session_token, expires_in
 	)
 	VALUES
 		($1, $2, $3)`,
