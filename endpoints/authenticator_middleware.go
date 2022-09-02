@@ -1,7 +1,6 @@
 package endpoints
 
 import (
-	"context"
 	"errors"
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/sessiontoken"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
-	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/rs/zerolog/log"
 )
 
@@ -35,19 +33,9 @@ func SessionAuthenticatorMiddleware(db database.UserSessionInterface) func(next 
 				return
 			}
 
-			ctx = context.WithValue(ctx, sessiontoken.DatabaseContextKey{}, db)
-			if err := jwt.Validate(
-				token,
-				jwt.WithContext(ctx),
-				jwt.WithValidator(jwt.ValidatorFunc(sessiontoken.Validator)),
-			); err != nil {
-				if err == database.ErrSessionInvalid {
-					log.Debug().Msg("Validating jwt token returned failure")
-					render.Render(w, r, UnauthorizedRequestError(ErrSessionTokenMissingOrInvalid))
-				} else {
-					log.Error().Err(err).Msg("Validating session token returned an error")
-					render.Render(w, r, InternalServerError())
-				}
+			if err := sessiontoken.Validator(ctx, db, token); err != nil {
+				log.Debug().Err(err).Msg("Validating jwt token returned failure")
+				render.Render(w, r, UnauthorizedRequestError(ErrSessionTokenMissingOrInvalid))
 				return
 			}
 

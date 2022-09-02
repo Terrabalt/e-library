@@ -2,6 +2,7 @@ package sessiontoken
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/go-chi/jwtauth"
@@ -35,6 +36,29 @@ func (token *TokenClaimsSchema) FromInterface(inter map[string]interface{}) erro
 	err = json.Unmarshal(js, token)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (token *TokenClaimsSchema) StrictFromInterface(inter map[string]interface{}) error {
+	if err := token.FromInterface(inter); err != nil {
+		return err
+	}
+	return token.CheckMalform()
+}
+
+func (token *TokenClaimsSchema) StrictToInterface() (inter map[string]interface{}, err error) {
+	if err := token.CheckMalform(); err != nil {
+		return nil, err
+	}
+	return token.ToInterface()
+}
+
+var ErrTokenMalformed = errors.New("")
+
+func (token TokenClaimsSchema) CheckMalform() error {
+	if token.Email == "" || token.Session == "" {
+		return ErrTokenMalformed
 	}
 	return nil
 }
