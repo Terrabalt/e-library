@@ -11,10 +11,10 @@ type BookResponse struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
 	Author   string `json:"author"`
-	CoverURL string `json:"coverUrl"`
+	CoverURL string `json:"cover_url"`
 	Summary  string `json:"summary,omitempty"`
 	Readers  int    `json:"readers"`
-	IsFav    bool   `json:"isFav"`
+	IsFav    bool   `json:"is_favorite"`
 }
 
 func (b *BookResponse) Render(w http.ResponseWriter, r *http.Request) error {
