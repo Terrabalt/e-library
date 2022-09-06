@@ -3,7 +3,7 @@ package emailhelper
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net/url"
 	"time"
 
 	"github.com/sethvargo/go-envconfig"
@@ -37,15 +37,11 @@ type activationMailDriverImpl struct {
 
 func (dialMail activationMailDriverImpl) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
 	mailSetup := gomail.NewMessage()
-	a := strings.Split(email, "@")
-	emailUsername := a[0]
-	emailDomain := a[1]
 	activationLink := fmt.Sprintf(
-		"%s/auth/act?username=%s&domain=%s&token=%s",
+		"%s/auth/act?email=%s&token=%s",
 		dialMail.Host,
-		emailUsername,
-		emailDomain,
-		activationToken,
+		url.QueryEscape(email),
+		url.QueryEscape(activationToken),
 	)
 
 	mailSetup.SetHeader("From", dialMail.EmailFrom)
