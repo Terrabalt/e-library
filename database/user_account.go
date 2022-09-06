@@ -53,7 +53,6 @@ var registerStmt = dbStatement{
 	VALUES
 		($1, $2, $3, $4, $5)`,
 }
-
 var registerGoogleStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -67,10 +66,11 @@ var refreshActivationStmt = dbStatement{
 	nil, `
 	UPDATE user_account
 	SET 
-		activation_token = $1,
-		expires_in = $2
+		activated = $1,
+		activation_token = $2,
+		expires_in = $3
 	WHERE
-		email = $3`,
+		email = $4`,
 }
 
 func init() {
@@ -270,9 +270,16 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activ
 
 	v := time.Now().Add(time.Minute * time.Duration(2))
 	validUntil = &v
-	_, err = refreshActivationStmt.Statement.ExecContext(ctx, randomUUID, *validUntil, email)
+	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
 	if err != nil {
 		return "", nil, err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return "", nil, err
+	}
+	if rowsAffected == 0 {
+		return "", nil, ErrAccountNotFound
 	}
 	return
 }
