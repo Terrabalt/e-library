@@ -102,16 +102,16 @@ func (db dBMock) LoginGoogle(ctx context.Context, gID string, pass string, sessi
 	return args.String(0), args.Error(1)
 }
 
-func (db dBMock) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
-	args := db.Called(email, password, name)
+func (db dBMock) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	args := db.Called(email, password, name, activationDuration)
 	if args.Get(1) == nil {
 		return "", nil, args.Error(2)
 	}
 	return args.String(0), args.Get(1).(*time.Time), nil
 }
 
-func (db dBMock) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
-	args := db.Called(email, gID, name)
+func (db dBMock) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	args := db.Called(email, gID, name, activationDuration)
 	if args.Get(1) == nil {
 		return "", nil, args.Error(2)
 	}

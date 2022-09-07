@@ -32,8 +32,9 @@ type config struct {
 }
 
 type loginLengths struct {
-	TokenLength   time.Duration `env:"TOKEN_DURATION"`
-	SessionLength time.Duration `env:"SESSION_DURATION"`
+	TokenLength      time.Duration `env:"TOKEN_DURATION"`
+	SessionLength    time.Duration `env:"SESSION_DURATION"`
+	ActivationLength time.Duration `env:"ACTIVATION_DURATION"`
 }
 
 func main() {
@@ -90,8 +91,8 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
-		r.Post("/register", endpoints.RegisterPost(db, sessionAuth, email))
-		r.Post("/register/google", endpoints.RegisterGoogle(db, sessionAuth, gValidator, email))
+		r.Post("/register", endpoints.RegisterPost(db, sessionAuth, email, conf.LoginLengths.ActivationLength))
+		r.Post("/register/google", endpoints.RegisterGoogle(db, sessionAuth, gValidator, email, conf.LoginLengths.ActivationLength))
 	})
 
 	r.Group(func(r chi.Router) {

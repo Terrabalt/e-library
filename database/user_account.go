@@ -13,8 +13,8 @@ import (
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
-	Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error)
-	RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error)
+	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt = dbStatement{
@@ -196,7 +196,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 
 var ErrAccountExisted error = errors.New("account already existed")
 
-func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	row := loginStmt.Statement.QueryRowContext(ctx, email)
 	var nullHash sql.NullString
 	var activated bool
@@ -219,7 +219,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
 	_, err = registerStmt.Statement.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
@@ -229,7 +229,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	return
 }
 
-func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
 	var nullGID sql.NullString
 	var activated bool
@@ -247,7 +247,7 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
 	_, err = registerGoogleStmt.Statement.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
@@ -258,14 +258,14 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	return
 }
 
-func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
 		return "", nil, err
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(duration)
 	validUntil = &v
 	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
 	if err != nil {

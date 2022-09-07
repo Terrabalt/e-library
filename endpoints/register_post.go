@@ -6,6 +6,7 @@ import (
 	"ic-rhadi/e_library/emailhelper"
 	"net/http"
 	"regexp"
+	"time"
 	"unicode/utf8"
 
 	"github.com/go-chi/jwtauth"
@@ -78,6 +79,7 @@ func RegisterPost(
 	db database.UserAccountInterface,
 	sessionAuth *jwtauth.JWTAuth,
 	email emailhelper.ActivationMailDriver,
+	activationDuration time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -90,7 +92,7 @@ func RegisterPost(
 			return
 		}
 
-		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name)
+		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name, activationDuration)
 		if err != nil {
 			if err == database.ErrAccountExisted {
 				render.Render(w, r, RequestConflictError(errAccountAlreadyRegistered))
