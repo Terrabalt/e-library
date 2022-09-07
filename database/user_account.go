@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -83,7 +82,6 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
-		log.Debug().Err(err).Msg("Error when comparing password to hash")
 		return "", ErrWrongPass
 	}
 
