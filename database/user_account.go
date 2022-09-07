@@ -198,16 +198,16 @@ var ErrAccountExisted error = errors.New("account already existed")
 
 func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
 	row := loginStmt.Statement.QueryRowContext(ctx, email)
-	if row.Err() == nil {
-		var hash sql.NullString
-		var activated bool
-		row.Scan(&hash, &activated)
-		if hash.Valid {
-			return "", nil, ErrAccountExisted
-		}
-	} else if row.Err() != sql.ErrNoRows {
+	var nullHash sql.NullString
+	var activated bool
+	err = row.Scan(&nullHash, &activated)
+	if err == nil && nullHash.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
 		return "", nil, err
 	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", nil, err
@@ -231,14 +231,13 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
 	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
-	if row.Err() == nil {
-		var gID sql.NullString
-		var activated bool
-		row.Scan(&gID, &activated)
-		if gID.Valid {
-			return "", nil, ErrAccountExisted
-		}
-	} else if row.Err() != sql.ErrNoRows {
+	var nullGID sql.NullString
+	var activated bool
+	err = row.Scan(&gID, &activated)
+	if err == nil && nullGID.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
 		return "", nil, err
 	}
 
