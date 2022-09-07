@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"ic-rhadi/e_library/database"
@@ -11,6 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func (db dBMock) GetNewBooks(ctx context.Context, accountID string) ([]database.Book, error) {
+	args := db.Called(accountID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Book), args.Error(1)
+}
 
 func TestSuccessfulListMoreNewBooks(t *testing.T) {
 	path := "/books/new/more"
@@ -30,7 +39,7 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetNewBooks", 0, 0, expID.Account).
+	dbMock.On("GetNewBooks", expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
@@ -50,7 +59,7 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetNewBooks", 0, 0, expID.Account).
+	dbMock.On("GetNewBooks", expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
@@ -76,7 +85,7 @@ func TestFailedListMoreNewBooks(t *testing.T) {
 	handler := ListMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
-	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
+	expResp, expCode := BadRequestError(ErrSessionTokenMissingOrInvalid).(*ErrorResponse).sentForm()
 
 	resp := &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A failed New-Books-List didn't return the proper response code")
@@ -85,12 +94,14 @@ func TestFailedListMoreNewBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetNewBooks", 0, 0, expID.Account).
+	dbMock.On("GetNewBooks", expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
 	handler = ListMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
+
+	expResp, expCode = InternalServerError().(*ErrorResponse).sentForm()
 
 	resp = &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A errored New-Books-List didn't return the proper response code")

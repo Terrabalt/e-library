@@ -31,7 +31,7 @@ func HomepageListNewBooks(
 			return
 		}
 
-		books, err := db.GetNewBooks(ctx, 8, 0, sch.Email)
+		books, err := db.GetNewBooksPaginated(ctx, 8, 0, sch.Email)
 		if err != nil {
 			log.Error().Err(err).Msg("Listing new books on Homepage failed")
 			render.Render(w, r, InternalServerError())

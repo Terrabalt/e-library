@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) GetNewBooks(ctx context.Context, limit int, offset int, accountID string) ([]database.Book, error) {
+func (db dBMock) GetNewBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]database.Book, error) {
 	args := db.Called(limit, offset, accountID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -39,7 +39,7 @@ func TestSuccessfulHomepageListNewBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetNewBooks", 8, 0, expID.Account).
+	dbMock.On("GetNewBooksPaginated", 8, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
@@ -59,7 +59,7 @@ func TestSuccessfulHomepageListNewBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetNewBooks", 8, 0, expID.Account).
+	dbMock.On("GetNewBooksPaginated", 8, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
@@ -85,7 +85,7 @@ func TestFailedHomepageListNewBooks(t *testing.T) {
 	handler := HomepageListNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
-	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
+	expResp, expCode := BadRequestError(ErrSessionTokenMissingOrInvalid).(*ErrorResponse).sentForm()
 
 	resp := &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A failed Homepage-New-Books-List didn't return the proper response code")
@@ -94,12 +94,14 @@ func TestFailedHomepageListNewBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetNewBooks", 8, 0, expID.Account).
+	dbMock.On("GetNewBooksPaginated", 8, 0, expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
 	handler = HomepageListNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
+
+	expResp, expCode = InternalServerError().(*ErrorResponse).sentForm()
 
 	resp = &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A errored Homepage-New-Books-List didn't return the proper response code")

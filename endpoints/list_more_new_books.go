@@ -31,7 +31,7 @@ func ListMoreNewBooks(
 			return
 		}
 
-		books, err := db.GetNewBooks(ctx, 0, 0, sch.Email)
+		books, err := db.GetNewBooks(ctx, sch.Email)
 		if err != nil {
 			log.Error().Err(err).Msg("Listing more new books on Homepage failed")
 			render.Render(w, r, InternalServerError())
