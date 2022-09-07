@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS user_session (
 	session_token uuid NOT NULL,
 	expires_in timestamptz NOT NULL,
 	CONSTRAINT user_session_pk PRIMARY KEY (user_id, session_token),
-	CONSTRAINT user_session_fk0 FOREIGN KEY (user_id) REFERENCES user_account(email)
+	CONSTRAINT user_session_fk_user_id FOREIGN KEY (user_id) REFERENCES user_account(email)
 );
 
 CREATE TABLE IF NOT EXISTS book (
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS fav_book (
 	user_id varchar(255) NOT NULL,
 	book_id uuid NOT NULL,
 	CONSTRAINT fav_book_pk PRIMARY KEY (user_id, book_id),
-	CONSTRAINT fav_book_fk0 FOREIGN KEY (user_id) REFERENCES user_account(email),
-	CONSTRAINT fav_book_fk1 FOREIGN KEY (book_id) REFERENCES book(id)
+	CONSTRAINT fav_book_fk_user_id FOREIGN KEY (user_id) REFERENCES user_account(email),
+	CONSTRAINT fav_book_fk_book_id FOREIGN KEY (book_id) REFERENCES book(id)
 );
 
 CREATE TABLE IF NOT EXISTS rate_book (
@@ -42,6 +42,6 @@ CREATE TABLE IF NOT EXISTS rate_book (
 	book_id uuid NOT NULL,
 	rating int8 NOT NULL,
 	CONSTRAINT rate_book_pk PRIMARY KEY (user_id, book_id),
-	CONSTRAINT rate_book_fk0 FOREIGN KEY (user_id) REFERENCES user_account(email),
-	CONSTRAINT rate_book_fk1 FOREIGN KEY (book_id) REFERENCES book(id)
+	CONSTRAINT rate_book_fk_user_id FOREIGN KEY (user_id) REFERENCES user_account(email),
+	CONSTRAINT rate_book_fk_book_id FOREIGN KEY (book_id) REFERENCES book(id)
 );

@@ -321,6 +321,8 @@ func TestSuccessfulRegister(t *testing.T) {
 	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
 	defer d.Close()
 
+	expDur := time.Minute * time.Duration(10)
+
 	db := DBInstance{d}
 
 	th := &testString{}
@@ -340,7 +342,7 @@ func TestSuccessfulRegister(t *testing.T) {
 	err = registerStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName)
+	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName, expDur)
 	if assert.Nil(t, err, "unexpected error in a successful register test") {
 		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	}
@@ -354,6 +356,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	d, mock, err := sqlmock.New()
 	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
 	defer d.Close()
+	expDur := time.Minute * time.Duration(10)
 
 	db := DBInstance{d}
 
@@ -374,7 +377,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	err = registerGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName)
+	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName, expDur)
 	if assert.Nil(t, err, "unexpected error in a successful register-google test") {
 		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
 	}

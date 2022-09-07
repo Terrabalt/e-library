@@ -35,7 +35,6 @@ func LoginGoogle(
 	tokenLength time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 		data := &loginGoogleRequest{}
 		if err := render.Bind(r, data); err != nil {
