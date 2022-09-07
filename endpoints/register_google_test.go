@@ -26,14 +26,15 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 		FullName:      "Joko",
 		AccountID:     expID.GAccount,
 	}
+	expDur := time.Minute * time.Duration(2)
 
 	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", reg.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	expTime := time.Now().Add(time.Minute * time.Duration(2))
+	expTime := time.Now().Add(expDur)
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName).
+	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName, expDur).
 		Return(expID.AccountActivation, &expTime, nil).Once()
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
@@ -43,7 +44,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 	expCode := http.StatusCreated
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
+	handler := RegisterGoogle(dbMock, gValidatorMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &registerResponse{}
@@ -61,6 +62,7 @@ func TestMalformedRegisterGoogle(t *testing.T) {
 	reg := registerGoogleRequest{
 		GoogleToken: "",
 	}
+	expDur := time.Minute * time.Duration(2)
 
 	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 
@@ -71,7 +73,7 @@ func TestMalformedRegisterGoogle(t *testing.T) {
 	expResp, expCode := BadRequestError(errRegisterGoogleMalformed).(*ErrorResponse).sentForm()
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
+	handler := RegisterGoogle(dbMock, gValidatorMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -89,6 +91,7 @@ func TestNonValidatedRegisterGoogle(t *testing.T) {
 	reg := registerGoogleRequest{
 		GoogleToken: "a.b.c",
 	}
+	expDur := time.Minute * time.Duration(2)
 
 	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", reg.GoogleToken).
@@ -101,7 +104,7 @@ func TestNonValidatedRegisterGoogle(t *testing.T) {
 	expResp, expCode := ValidationFailedError(errGoogleTokenFailed).(*ErrorResponse).sentForm()
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
+	handler := RegisterGoogle(dbMock, gValidatorMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -119,6 +122,7 @@ func TestAlreadyRegisteredGoogle(t *testing.T) {
 	reg := registerGoogleRequest{
 		GoogleToken: "a.b.c",
 	}
+	expDur := time.Minute * time.Duration(2)
 
 	expGClaims := googlehelper.GoogleClaimsSchema{
 		Email:         expID.Account,
@@ -132,7 +136,7 @@ func TestAlreadyRegisteredGoogle(t *testing.T) {
 		Return(&expGClaims, nil).Once()
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName).
+	dbMock.On("RegisterGoogle", expGClaims.Email, expGClaims.AccountID, expGClaims.FullName, expDur).
 		Return("", nil, database.ErrAccountExisted).Once()
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
@@ -140,7 +144,7 @@ func TestAlreadyRegisteredGoogle(t *testing.T) {
 	expResp, expCode := RequestConflictError(errAccountAlreadyRegistered).(*ErrorResponse).sentForm()
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterGoogle(dbMock, tokenAuth, gValidatorMock, mailMock)
+	handler := RegisterGoogle(dbMock, gValidatorMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
