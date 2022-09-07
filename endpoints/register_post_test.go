@@ -20,9 +20,10 @@ func TestSuccessfulRegister(t *testing.T) {
 		Name:     "Joko",
 	}
 
-	expTime := time.Now().Add(time.Minute * time.Duration(2))
+	expDur := time.Minute * time.Duration(2)
+	expTime := time.Now().Add(expDur)
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("Register", reg.Email, reg.Password, reg.Name).
+	dbMock.On("Register", reg.Email, reg.Password, reg.Name, expDur).
 		Return(expID.AccountActivation, &expTime, nil).Once()
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
@@ -32,7 +33,7 @@ func TestSuccessfulRegister(t *testing.T) {
 	expCode := http.StatusCreated
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterPost(dbMock, tokenAuth, mailMock)
+	handler := RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &registerResponse{}
@@ -52,6 +53,7 @@ func TestMalformedRegistered(t *testing.T) {
 		Name:     "Joko",
 	}
 
+	expDur := time.Minute * time.Duration(2)
 	dbMock := dBMock{&mock.Mock{}}
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
@@ -59,7 +61,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode := BadRequestError(errEmailMalformed).(*ErrorResponse).sentForm()
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterPost(dbMock, tokenAuth, mailMock)
+	handler := RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
@@ -76,7 +78,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode = BadRequestError(errPasswordDontHaveNumber).(*ErrorResponse).sentForm()
 
 	w, r = mockRequest(t, path, reg, false)
-	handler = RegisterPost(dbMock, tokenAuth, mailMock)
+	handler = RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
@@ -93,7 +95,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode = BadRequestError(errPasswordDontHaveUppercase).(*ErrorResponse).sentForm()
 
 	w, r = mockRequest(t, path, reg, false)
-	handler = RegisterPost(dbMock, tokenAuth, mailMock)
+	handler = RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
@@ -110,7 +112,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode = BadRequestError(errPasswordDontHaveSpecials).(*ErrorResponse).sentForm()
 
 	w, r = mockRequest(t, path, reg, false)
-	handler = RegisterPost(dbMock, tokenAuth, mailMock)
+	handler = RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
@@ -127,7 +129,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode = BadRequestError(errPasswordTooShort).(*ErrorResponse).sentForm()
 
 	w, r = mockRequest(t, path, reg, false)
-	handler = RegisterPost(dbMock, tokenAuth, mailMock)
+	handler = RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
@@ -144,7 +146,7 @@ func TestMalformedRegistered(t *testing.T) {
 	expResp, expCode = BadRequestError(errPasswordTooLong).(*ErrorResponse).sentForm()
 
 	w, r = mockRequest(t, path, reg, false)
-	handler = RegisterPost(dbMock, tokenAuth, mailMock)
+	handler = RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
@@ -162,8 +164,9 @@ func TestAlreadyRegistered(t *testing.T) {
 		Name:     "Joko",
 	}
 
+	expDur := time.Minute * time.Duration(2)
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("Register", reg.Email, reg.Password, reg.Name).
+	dbMock.On("Register", reg.Email, reg.Password, reg.Name, expDur).
 		Return("", nil, database.ErrAccountExisted).Once()
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
@@ -171,7 +174,7 @@ func TestAlreadyRegistered(t *testing.T) {
 	expResp, expCode := RequestConflictError(errAccountAlreadyRegistered).(*ErrorResponse).sentForm()
 
 	w, r := mockRequest(t, path, reg, false)
-	handler := RegisterPost(dbMock, tokenAuth, mailMock)
+	handler := RegisterPost(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}

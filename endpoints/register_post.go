@@ -6,9 +6,9 @@ import (
 	"ic-rhadi/e_library/emailhelper"
 	"net/http"
 	"regexp"
+	"time"
 	"unicode/utf8"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -19,12 +19,16 @@ type registerPostRequest struct {
 	Password string `json:"password"`
 }
 
+var emailRegex = regexp.MustCompile(`^.*@.*\..*$`)
+var passwordNumRegex = regexp.MustCompile(`[0-9]`)
+var passwordUpperRegex = regexp.MustCompile(`[A-Z]`)
+var passwordSpecialRegex = regexp.MustCompile(`[^a-zA-Z0-9]`)
+
 func (l *registerPostRequest) Bind(r *http.Request) error {
 	if l.Name == "" || l.Email == "" || l.Password == "" {
 		return errRegisterPostMalformed
 	}
 
-	emailRegex := regexp.MustCompile(`^[a-z0-9._\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	if len(l.Email) > 254 || !emailRegex.MatchString(l.Email) {
 		return errEmailMalformed
 	}
@@ -37,17 +41,14 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 		return errPasswordTooLong
 	}
 
-	passwordNumRegex := regexp.MustCompile(`[0-9]`)
 	if !passwordNumRegex.MatchString(l.Password) {
 		return errPasswordDontHaveNumber
 	}
 
-	passwordUpperRegex := regexp.MustCompile(`[A-Z]`)
 	if !passwordUpperRegex.MatchString(l.Password) {
 		return errPasswordDontHaveUppercase
 	}
 
-	passwordSpecialRegex := regexp.MustCompile(`[^a-zA-Z0-9]`)
 	if !passwordSpecialRegex.MatchString(l.Password) {
 		return errPasswordDontHaveSpecials
 	}
@@ -76,11 +77,10 @@ var errAccountAlreadyRegistered = errors.New("this account is already registered
 
 func RegisterPost(
 	db database.UserAccountInterface,
-	sessionAuth *jwtauth.JWTAuth,
 	email emailhelper.ActivationMailDriver,
+	activationDuration time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		data := &registerPostRequest{}
@@ -90,7 +90,7 @@ func RegisterPost(
 			return
 		}
 
-		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name)
+		activationToken, validUntil, err := db.Register(ctx, data.Email, data.Password, data.Name, activationDuration)
 		if err != nil {
 			if err == database.ErrAccountExisted {
 				render.Render(w, r, RequestConflictError(errAccountAlreadyRegistered))

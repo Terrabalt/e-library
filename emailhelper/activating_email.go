@@ -3,7 +3,7 @@ package emailhelper
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net/url"
 	"time"
 
 	"github.com/sethvargo/go-envconfig"
@@ -37,23 +37,24 @@ type activationMailDriverImpl struct {
 
 func (dialMail activationMailDriverImpl) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
 	mailSetup := gomail.NewMessage()
-	a := strings.Split(email, "@")
-	emailUsername := a[0]
-	emailDomain := a[1]
 	activationLink := fmt.Sprintf(
-		"%s/auth/act?username=%s&domain=%s&token=%s",
+		"%s/auth/activate?email=%s&token=%s",
 		dialMail.Host,
-		emailUsername,
-		emailDomain,
-		activationToken,
+		url.QueryEscape(email),
+		url.QueryEscape(activationToken),
 	)
-
+	resendLink := fmt.Sprintf(
+		"%s/auth/resend?email=%s",
+		dialMail.Host,
+		url.QueryEscape(email),
+	)
 	mailSetup.SetHeader("From", dialMail.EmailFrom)
 	mailSetup.SetHeader("To", email)
 	mailSetup.SetHeader("Subject", "Activate your account")
 	mailSetup.SetBody("text/html",
 		"<p>Thank you for registering. To complete, click the link below.</p>"+
 			fmt.Sprintf("<p><a href=\"%s\">Click here</a></p>", activationLink)+
+			fmt.Sprintf("<p>Note: If this link has already expired by the time you get this email, we can resend you another one by <a href=\"%s\">clicking here.</a></p>", resendLink)+
 			"<p>--eLibrary--</p>",
 	)
 

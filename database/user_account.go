@@ -7,15 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
-	Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error)
-	RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error)
+	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt = dbStatement{
@@ -53,7 +52,6 @@ var registerStmt = dbStatement{
 	VALUES
 		($1, $2, $3, $4, $5)`,
 }
-
 var registerGoogleStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -67,10 +65,11 @@ var refreshActivationStmt = dbStatement{
 	nil, `
 	UPDATE user_account
 	SET 
-		activation_token = $1,
-		expires_in = $2
+		activated = $1,
+		activation_token = $2,
+		expires_in = $3
 	WHERE
-		email = $3`,
+		email = $4`,
 }
 
 func init() {
@@ -116,7 +115,6 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(pass)); err != nil {
-		log.Debug().Err(err).Msg("Error when comparing password to hash")
 		return "", ErrWrongPass
 	}
 
@@ -198,18 +196,18 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 
 var ErrAccountExisted error = errors.New("account already existed")
 
-func (db DBInstance) Register(ctx context.Context, email string, password string, name string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	row := loginStmt.Statement.QueryRowContext(ctx, email)
-	if row.Err() == nil {
-		var hash sql.NullString
-		var activated bool
-		row.Scan(&hash, &activated)
-		if hash.Valid {
-			return "", nil, ErrAccountExisted
-		}
-	} else if row.Err() != sql.ErrNoRows {
+	var nullHash sql.NullString
+	var activated bool
+	err = row.Scan(&nullHash, &activated)
+	if err == nil && nullHash.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
 		return "", nil, err
 	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", nil, err
@@ -221,7 +219,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
 	_, err = registerStmt.Statement.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
@@ -231,16 +229,15 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	return
 }
 
-func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
-	if row.Err() == nil {
-		var gID sql.NullString
-		var activated bool
-		row.Scan(&gID, &activated)
-		if gID.Valid {
-			return "", nil, ErrAccountExisted
-		}
-	} else if row.Err() != sql.ErrNoRows {
+	var nullGID sql.NullString
+	var activated bool
+	err = row.Scan(&gID, &activated)
+	if err == nil && nullGID.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
 		return "", nil, err
 	}
 
@@ -250,7 +247,7 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
 	_, err = registerGoogleStmt.Statement.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
@@ -261,18 +258,25 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	return
 }
 
-func (db DBInstance) RefreshActivation(ctx context.Context, email string) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
 		return "", nil, err
 	}
 	activationToken = randomUUID.String()
 
-	v := time.Now().Add(time.Minute * time.Duration(2))
+	v := time.Now().Add(duration)
 	validUntil = &v
-	_, err = refreshActivationStmt.Statement.ExecContext(ctx, randomUUID, *validUntil, email)
+	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
 	if err != nil {
 		return "", nil, err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return "", nil, err
+	}
+	if rowsAffected == 0 {
+		return "", nil, ErrAccountNotFound
 	}
 	return
 }

@@ -12,7 +12,7 @@ type BookResponse struct {
 	Title    string `json:"title"`
 	Author   string `json:"author"`
 	CoverURL string `json:"cover_url"`
-	Summary  string `json:"summary,omitempty"`
+	Summary  string `json:"summary"`
 	Readers  int    `json:"readers"`
 	IsFav    bool   `json:"is_favorite"`
 }
@@ -42,9 +42,6 @@ type BooksResponse struct {
 }
 
 func (b *BooksResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	for i := range b.Data {
-		b.Data[i].Summary = ""
-	}
 	render.Status(r, http.StatusOK)
 	w.Header().Set("content-type", "application/json")
 	return nil

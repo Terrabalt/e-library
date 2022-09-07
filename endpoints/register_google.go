@@ -6,8 +6,8 @@ import (
 	"ic-rhadi/e_library/emailhelper"
 	"ic-rhadi/e_library/googlehelper"
 	"net/http"
+	"time"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -29,12 +29,11 @@ var errGoogleTokenFailed = errors.New("google token validation failed")
 
 func RegisterGoogle(
 	db database.UserAccountInterface,
-	sessionAuth *jwtauth.JWTAuth,
 	gValidator googlehelper.GTokenValidator,
 	email emailhelper.ActivationMailDriver,
+	activationDuration time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		data := &registerGoogleRequest{}
@@ -51,7 +50,7 @@ func RegisterGoogle(
 			return
 		}
 
-		activationToken, validUntil, err := db.RegisterGoogle(ctx, gClaims.Email, gClaims.AccountID, gClaims.FullName)
+		activationToken, validUntil, err := db.RegisterGoogle(ctx, gClaims.Email, gClaims.AccountID, gClaims.FullName, activationDuration)
 		if err != nil {
 			if err == database.ErrAccountExisted {
 				render.Render(w, r, RequestConflictError(errAccountAlreadyRegistered))
