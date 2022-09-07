@@ -14,7 +14,6 @@ func HomepageListPopularBooks(
 	db database.BookInterface,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		_, token, err := jwtauth.FromContext(ctx)
