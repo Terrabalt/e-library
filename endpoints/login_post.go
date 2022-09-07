@@ -36,7 +36,6 @@ func LoginPost(
 	tokenLength time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		data := &loginPostRequest{}

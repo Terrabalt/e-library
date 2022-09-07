@@ -34,7 +34,6 @@ func RegisterGoogle(
 	activationDuration time.Duration,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		data := &registerGoogleRequest{}
