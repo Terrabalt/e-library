@@ -31,7 +31,7 @@ func ListMorePopularBooks(
 			return
 		}
 
-		books, err := db.GetPopularBooks(ctx, 0, 0, sch.Email)
+		books, err := db.GetPopularBooks(ctx, sch.Email)
 		if err != nil {
 			log.Error().Err(err).Msg("Listing more popular books on Homepage failed")
 			render.Render(w, r, InternalServerError())

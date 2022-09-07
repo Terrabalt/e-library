@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) GetPopularBooks(ctx context.Context, limit int, offset int, accountID string) ([]database.Book, error) {
+func (db dBMock) GetPopularBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]database.Book, error) {
 	args := db.Called(limit, offset, accountID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -39,7 +39,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetPopularBooks", 8, 0, expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 8, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
@@ -59,7 +59,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetPopularBooks", 8, 0, expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 8, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
@@ -94,7 +94,7 @@ func TestFailedHomepageListPopularBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetPopularBooks", 8, 0, expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 8, 0, expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)

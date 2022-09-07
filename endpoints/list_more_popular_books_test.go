@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"ic-rhadi/e_library/database"
@@ -11,6 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func (db dBMock) GetPopularBooks(ctx context.Context, accountID string) ([]database.Book, error) {
+	args := db.Called(accountID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Book), args.Error(1)
+}
 
 func TestSuccessfulListMorePopularBooks(t *testing.T) {
 	path := "/books/popular/more"
@@ -30,7 +39,7 @@ func TestSuccessfulListMorePopularBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetPopularBooks", 0, 0, expID.Account).
+	dbMock.On("GetPopularBooks", expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
@@ -50,7 +59,7 @@ func TestSuccessfulListMorePopularBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetPopularBooks", 0, 0, expID.Account).
+	dbMock.On("GetPopularBooks", expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
@@ -85,7 +94,7 @@ func TestFailedListMorePopularBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetPopularBooks", 0, 0, expID.Account).
+	dbMock.On("GetPopularBooks", expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
