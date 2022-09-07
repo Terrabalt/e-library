@@ -18,7 +18,6 @@ func SearchBooks(
 	db database.BookInterface,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		ctx := r.Context()
 
 		query := r.URL.Query().Get("query")
