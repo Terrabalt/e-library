@@ -20,12 +20,16 @@ type registerPostRequest struct {
 	Password string `json:"password"`
 }
 
+var emailRegex = regexp.MustCompile(`^.*@.*\..*$`)
+var passwordNumRegex = regexp.MustCompile(`[0-9]`)
+var passwordUpperRegex = regexp.MustCompile(`[A-Z]`)
+var passwordSpecialRegex = regexp.MustCompile(`[^a-zA-Z0-9]`)
+
 func (l *registerPostRequest) Bind(r *http.Request) error {
 	if l.Name == "" || l.Email == "" || l.Password == "" {
 		return errRegisterPostMalformed
 	}
 
-	var emailRegex = regexp.MustCompile(`^.*@.*\..*$`)
 	if len(l.Email) > 254 || !emailRegex.MatchString(l.Email) {
 		return errEmailMalformed
 	}
@@ -38,17 +42,14 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 		return errPasswordTooLong
 	}
 
-	passwordNumRegex := regexp.MustCompile(`[0-9]`)
 	if !passwordNumRegex.MatchString(l.Password) {
 		return errPasswordDontHaveNumber
 	}
 
-	passwordUpperRegex := regexp.MustCompile(`[A-Z]`)
 	if !passwordUpperRegex.MatchString(l.Password) {
 		return errPasswordDontHaveUppercase
 	}
 
-	passwordSpecialRegex := regexp.MustCompile(`[^a-zA-Z0-9]`)
 	if !passwordSpecialRegex.MatchString(l.Password) {
 		return errPasswordDontHaveSpecials
 	}
