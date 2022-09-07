@@ -91,8 +91,8 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
-		r.Post("/register", endpoints.RegisterPost(db, sessionAuth, email, conf.LoginLengths.ActivationLength))
-		r.Post("/register/google", endpoints.RegisterGoogle(db, sessionAuth, gValidator, email, conf.LoginLengths.ActivationLength))
+		r.Post("/register", endpoints.RegisterPost(db, email, conf.LoginLengths.ActivationLength))
+		r.Post("/register/google", endpoints.RegisterGoogle(db, gValidator, email, conf.LoginLengths.ActivationLength))
 	})
 
 	r.Group(func(r chi.Router) {

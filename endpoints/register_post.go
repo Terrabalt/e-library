@@ -9,7 +9,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -78,7 +77,6 @@ var errAccountAlreadyRegistered = errors.New("this account is already registered
 
 func RegisterPost(
 	db database.UserAccountInterface,
-	sessionAuth *jwtauth.JWTAuth,
 	email emailhelper.ActivationMailDriver,
 	activationDuration time.Duration,
 ) http.HandlerFunc {

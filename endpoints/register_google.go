@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -30,7 +29,6 @@ var errGoogleTokenFailed = errors.New("google token validation failed")
 
 func RegisterGoogle(
 	db database.UserAccountInterface,
-	sessionAuth *jwtauth.JWTAuth,
 	gValidator googlehelper.GTokenValidator,
 	email emailhelper.ActivationMailDriver,
 	activationDuration time.Duration,
