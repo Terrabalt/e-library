@@ -51,6 +51,7 @@ type BookInterface interface {
 func init() {
 	prepareStatements = append(prepareStatements,
 		&getNewBooks,
+		&getNewBooksPaginated,
 	)
 }
 
