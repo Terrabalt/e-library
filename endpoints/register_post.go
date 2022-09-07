@@ -25,7 +25,7 @@ func (l *registerPostRequest) Bind(r *http.Request) error {
 		return errRegisterPostMalformed
 	}
 
-	emailRegex := regexp.MustCompile(`^[a-z0-9._\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+	var emailRegex = regexp.MustCompile(`^.*@.*\..*$`)
 	if len(l.Email) > 254 || !emailRegex.MatchString(l.Email) {
 		return errEmailMalformed
 	}
