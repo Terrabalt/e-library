@@ -30,8 +30,8 @@ var searchBooks = dbStatement{
 	FROM
 		book b
 	WHERE
-		LOWER(b.title) LIKE LOWER('%' || $2 || '%')
-		OR LOWER(b.author) LIKE LOWER('%' || $2 || '%')
+		b.title ILIKE '%' || $2 || '%'
+		OR b.author ILIKE '%' || $2 || '%'
 	ORDER BY
 		b.title ASC;`,
 }
