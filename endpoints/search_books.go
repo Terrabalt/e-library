@@ -11,7 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var errSearchQueryMalformed = errors.New("search query not found")
 var errSearchQueryTooShort = errors.New("search query too short")
 
 func SearchBooks(
@@ -21,28 +20,22 @@ func SearchBooks(
 		ctx := r.Context()
 
 		query := r.URL.Query().Get("query")
-		if query == "" {
-			log.Debug().Msg("Getting book-search query string returned an error")
-			render.Render(w, r, BadRequestError(errSearchQueryMalformed))
-			return
-		}
 		if len(query) < 3 {
-			log.Debug().Msg("Getting book-search query string returned an error")
 			render.Render(w, r, BadRequestError(errSearchQueryTooShort))
 			return
 		}
 
 		_, token, err := jwtauth.FromContext(ctx)
 		if err != nil {
-			log.Debug().Err(err).Msg("Getting book-searcher account failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
+			log.Error().Err(err).Msg("Getting book-searcher account failed unexpectedly")
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
 		var sch sessiontoken.TokenClaimsSchema
-		if err := sch.StrictFromInterface(token); err != nil {
-			log.Debug().Err(err).Msg("Getting book-searcher account failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
+		if err := sch.FromInterface(token); err != nil {
+			log.Error().Err(err).Msg("Getting book-searcher account failed unexpectedly")
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
