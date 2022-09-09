@@ -8,13 +8,14 @@ import (
 )
 
 type BookResponse struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Author   string `json:"author"`
-	CoverURL string `json:"cover_url"`
-	Summary  string `json:"summary"`
-	Readers  int    `json:"readers"`
-	IsFav    bool   `json:"is_favorite"`
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Author   string  `json:"author"`
+	CoverURL string  `json:"cover_url"`
+	Summary  string  `json:"summary"`
+	Readers  int     `json:"readers"`
+	Rating   float32 `json:"rating"`
+	IsFav    bool    `json:"is_favorite"`
 }
 
 func (b *BookResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -32,6 +33,7 @@ func BookFromDatabase(dBook database.Book) BookResponse {
 	b.Summary = dBook.Summary
 	b.IsFav = dBook.IsFav
 	b.CoverURL = dBook.Cover.String()
+	b.Rating = dBook.Rating
 	b.Readers = dBook.Readers
 
 	return b
