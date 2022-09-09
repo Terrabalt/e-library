@@ -19,7 +19,7 @@ body -
 ```json
 {
     "email": "username@example.co.id",
-    "password": "password"
+    "password": "P4sswordꦏꦤ꧀"
 }
 ```
 response - 200 OK
@@ -33,6 +33,7 @@ response - 200 OK
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 ```json
 {
+    "error_type": "Bad Request",
     "message": "error-message"
 }
 ```
@@ -56,6 +57,53 @@ response - 200 OK
 response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 ```json
 {
+    "error_type": "Bad Request",
+    "message": "error-message"
+}
+```
+
+### /auth/register:
+
+body - 
+```json
+{
+    "email": "username@example.co.id",
+    "name": "Joko",
+    "password": "P4sswordꦏꦤ꧀"
+}
+```
+response - 200 OK
+```json
+{
+    "new_id": "username@example.co.id"
+}
+```
+response - 400 Bad Request
+```json
+{
+    "error_type": "Bad Request",
+    "message": "error-message"
+}
+```
+
+### /auth/register/google:
+
+body - 
+```json
+{
+    "token": "aa.bb.cc",
+}
+```
+response - 200 OK
+```json
+{
+    "new_id": "username@example.co.id"
+}
+```
+response - 400 Bad Request; 422 Validation Failed
+```json
+{
+    "error_type": "Bad Request",
     "message": "error-message"
 }
 ```
@@ -76,6 +124,9 @@ response - 400 Bad Request; 401 Unauthorized Request; 422 Validation Failed
 
 [![Go reference](https://pkg.go.dev/badge/github.com/joho/godotenv@v1.4.0.svg)](https://pkg.go.dev/github.com/joho/godotenv@v1.4.0)
 ``godotenv``, for enviroment variable loading
+
+[![Go reference](https://pkg.go.dev/badge/gopkg.in/gomail.v2@v2.0.0-20160411212932-81ebce5c23df.svg)](https://pkg.go.dev/gopkg.in/gomail.v2@v2.0.0-20160411212932-81ebce5c23df)
+``gomail``, for sending account activation email
 
 [![Go reference](https://pkg.go.dev/badge/google.golang.org/api@v0.93.0.svg)](https://pkg.go.dev/google.golang.org/api@v0.93.0)
 ``google/apo``, for validating google sign-in's token 

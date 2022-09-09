@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSuccessfulLoginGoogle(t *testing.T) {
@@ -28,11 +29,11 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return(expID.Session, nil).Once()
 
@@ -42,22 +43,23 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 		Session: expID.Session,
 	}
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &tokenResponse{}
 	assert.Equal(t, expCode, w.Code, "A successful Google-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Google-Login didn't return a valid tokenResponse object")
-	token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
-	assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Google-Login didn't return a valid tokenResponse object") {
+		token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
+		assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
 
-	tokenMap, err := token.AsMap(context.Background())
-	if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
-		var claims sessiontoken.TokenClaimsSchema
-		err := claims.FromInterface(tokenMap)
+		tokenMap, err := token.AsMap(context.Background())
 		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
-			assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+			var claims sessiontoken.TokenClaimsSchema
+			err := claims.FromInterface(tokenMap)
+			if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+				assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+			}
 		}
 	}
 	gValidatorMock.AssertExpectations(t)
@@ -72,21 +74,22 @@ func TestMalformedLoginGoogle(t *testing.T) {
 		Password: "Password",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
-	dbMock := &dBMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
+	dbMock := dBMock{&mock.Mock{}}
 
 	expResp, expCode := BadRequestError(ErrLoginGoogleMalformed).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A malformed Google-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Google-Login didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A malformed Google-Login didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed Google-Login didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A malformed Google-Login didn't return the proper error")
+	}
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }
@@ -98,24 +101,25 @@ func TestTokenFailedLoginGoogle(t *testing.T) {
 		GoogleToken: "a.b.c",
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(nil, errors.New("password wrong, should be xxxxx")).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	}
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }
@@ -135,27 +139,28 @@ func TestFailedLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return("", database.ErrAccountNotFound).Once()
 
 	expResp, expCode := ValidationFailedError(ErrLoginFailed).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	}
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }
@@ -174,26 +179,27 @@ func TestNotActivatedLoginGoogle(t *testing.T) {
 		AccountID:     expID.GAccount,
 	}
 
-	gValidatorMock := &gTokenValidatorMock{}
+	gValidatorMock := gTokenValidatorMock{&mock.Mock{}}
 	gValidatorMock.On("ValidateGToken", login.GoogleToken).
 		Return(&expGClaims, nil).Once()
 
-	dbMock := &dBMock{}
+	dbMock := dBMock{&mock.Mock{}}
 	dbMock.On("LoginGoogle", expGClaims.Email, expGClaims.AccountID, expSessionLen).
 		Return("", database.ErrAccountNotActive).Once()
 
 	expResp, expCode := UnauthorizedRequestError(ErrLoginAccountNotActive).(*ErrorResponse).
 		sentForm()
 
-	r, w := mockRequest(t, path, login, false)
+	w, r := mockRequest(t, path, login, false)
 	handler := LoginGoogle(dbMock, tokenAuth, gValidatorMock, expSessionLen, expTokenLen)
 	handler.ServeHTTP(w, r)
 
 	resp := &ErrorResponse{}
 
 	assert.Equal(t, expCode, w.Code, "A Google-Login on a not activated account didn't return the proper response code")
-	assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A Google-Login on a not activated account didn't return a valid errorResponse object")
-	assert.Equal(t, expResp, *resp, "A Google-Login on a not activated account didn't return the proper error")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A Google-Login on a not activated account didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A Google-Login on a not activated account didn't return the proper error")
+	}
 	gValidatorMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
 }

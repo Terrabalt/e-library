@@ -13,6 +13,8 @@ import (
 type UserAccountInterface interface {
 	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
+	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 }
 
 var loginStmt = dbStatement{
@@ -35,11 +37,39 @@ var loginGoogleStmt = dbStatement{
 }
 var loginRefreshStmt = dbStatement{
 	nil, `
-	INSERT INTO user_devices (
-		user_id, verifier, expires_in
+	INSERT INTO user_session (
+		user_id, session_token, expires_in
 	)
 	VALUES
 		($1, $2, $3)`,
+}
+
+var registerStmt = dbStatement{
+	nil, `
+	INSERT INTO user_account (
+		email, password, activation_token, expires_in, name
+	)
+	VALUES
+		($1, $2, $3, $4, $5)`,
+}
+var registerGoogleStmt = dbStatement{
+	nil, `
+	INSERT INTO user_account (
+		email, g_id, activation_token, expires_in, name
+	)
+	VALUES
+		($1, $2, $3, $4, $5)`,
+}
+
+var refreshActivationStmt = dbStatement{
+	nil, `
+	UPDATE user_account
+	SET 
+		activated = $1,
+		activation_token = $2,
+		expires_in = $3
+	WHERE
+		email = $4`,
 }
 
 func init() {
@@ -47,6 +77,9 @@ func init() {
 		&loginStmt,
 		&loginGoogleStmt,
 		&loginRefreshStmt,
+		&registerStmt,
+		&registerGoogleStmt,
+		&refreshActivationStmt,
 	)
 }
 
@@ -157,6 +190,93 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 
 	if err := tx.Commit(); err != nil {
 		return "", err
+	}
+	return
+}
+
+var ErrAccountExisted error = errors.New("account already existed")
+
+func (db DBInstance) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	row := loginStmt.Statement.QueryRowContext(ctx, email)
+	var nullHash sql.NullString
+	var activated bool
+	err = row.Scan(&nullHash, &activated)
+	if err == nil && nullHash.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
+		return "", nil, err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", nil, err
+	}
+
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
+
+	v := time.Now().Add(activationDuration)
+	validUntil = &v
+
+	_, err = registerStmt.Statement.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
+	if err != nil {
+		return "", nil, err
+	}
+	return
+}
+
+func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
+	var nullGID sql.NullString
+	var activated bool
+	err = row.Scan(&gID, &activated)
+	if err == nil && nullGID.Valid {
+		return "", nil, ErrAccountExisted
+	}
+	if err != sql.ErrNoRows {
+		return "", nil, err
+	}
+
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
+
+	v := time.Now().Add(activationDuration)
+	validUntil = &v
+
+	_, err = registerGoogleStmt.Statement.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return
+}
+
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	randomUUID, err := uuid.NewRandom()
+	if err != nil {
+		return "", nil, err
+	}
+	activationToken = randomUUID.String()
+
+	v := time.Now().Add(duration)
+	validUntil = &v
+	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
+	if err != nil {
+		return "", nil, err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return "", nil, err
+	}
+	if rowsAffected == 0 {
+		return "", nil, ErrAccountNotFound
 	}
 	return
 }

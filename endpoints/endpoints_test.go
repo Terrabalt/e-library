@@ -19,11 +19,13 @@ import (
 )
 
 var expID = struct {
-	Account  string
-	Session  string
-	GAccount string
+	Account           string
+	AccountActivation string
+	Session           string
+	GAccount          string
 }{
-	"123456778-9abc-def0@1234.56789abcdef0",
+	"123456778-9abc-def0@1234.56789abc.def",
+	"3456789a-bcde-f012-3456-789abcdef012",
 	"12345678-9abc-def0-1234-56789abcdef0",
 	"123456789abcdef0123456789abcdef0",
 }
@@ -38,9 +40,7 @@ var tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
 const expSessionLen = time.Hour * time.Duration(48)
 const expTokenLen = time.Minute * time.Duration(10)
 
-func mockRequest(t *testing.T, path string, body interface{}, withToken bool, params ...param) (*http.Request, *httptest.ResponseRecorder) {
-	var r *http.Request
-
+func mockRequest(t *testing.T, path string, body interface{}, withToken bool, params ...param) (*httptest.ResponseRecorder, *http.Request) {
 	var req io.Reader = nil
 	if body != nil {
 		js, err := json.Marshal(body)
@@ -50,7 +50,7 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 
 		req = bytes.NewBuffer(js)
 	}
-	r = httptest.NewRequest(http.MethodPost, path, req)
+	r := httptest.NewRequest(http.MethodPost, path, req)
 	w := httptest.NewRecorder()
 	r.Header.Add("Content-Type", "application/json")
 
@@ -66,7 +66,7 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 	}
 
 	r = r.WithContext(ctx)
-	return r, w
+	return w, r
 }
 
 func constToken(t *testing.T, tokenAuth *jwtauth.JWTAuth, email, session string) (jwt.Token, string, error) {
@@ -89,7 +89,7 @@ func (e ErrorResponse) sentForm() (ErrorResponse, int) {
 }
 
 type dBMock struct {
-	mock.Mock
+	*mock.Mock
 }
 
 func (db dBMock) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (id string, err error) {
@@ -102,8 +102,24 @@ func (db dBMock) LoginGoogle(ctx context.Context, gID string, pass string, sessi
 	return args.String(0), args.Error(1)
 }
 
+func (db dBMock) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	args := db.Called(email, password, name, activationDuration)
+	if args.Get(1) == nil {
+		return "", nil, args.Error(2)
+	}
+	return args.String(0), args.Get(1).(*time.Time), nil
+}
+
+func (db dBMock) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	args := db.Called(email, gID, name, activationDuration)
+	if args.Get(1) == nil {
+		return "", nil, args.Error(2)
+	}
+	return args.String(0), args.Get(1).(*time.Time), nil
+}
+
 type gTokenValidatorMock struct {
-	mock.Mock
+	*mock.Mock
 }
 
 func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (*googlehelper.GoogleClaimsSchema, error) {
@@ -112,4 +128,13 @@ func (g gTokenValidatorMock) ValidateGToken(ctx context.Context, token string) (
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*googlehelper.GoogleClaimsSchema), args.Error(1)
+}
+
+type activationMailDriverMock struct {
+	*mock.Mock
+}
+
+func (mail activationMailDriverMock) SendActivationEmail(email string, activationToken string, validUntil time.Time) error {
+	args := mail.Called(email, activationToken, validUntil)
+	return args.Error(0)
 }

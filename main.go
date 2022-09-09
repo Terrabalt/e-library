@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"ic-rhadi/e_library/database"
+	"ic-rhadi/e_library/emailhelper"
 	"ic-rhadi/e_library/endpoints"
 	"ic-rhadi/e_library/googlehelper"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 	"github.com/sethvargo/go-envconfig"
 )
 
-type Config struct {
+type config struct {
 	JWTSecret    string       `env:"JWTSECRET"`
 	PgHost       string       `env:"PG_HOST"`
 	PgPort       int          `env:"PG_PORT"`
@@ -27,12 +28,13 @@ type Config struct {
 	PgPass       string       `env:"PG_PASS"`
 	PgDB         string       `env:"PG_DB"`
 	Port         int          `env:"PORT,required"`
-	LoginLengths LoginLengths `env:""`
+	LoginLengths loginLengths `env:""`
 }
 
-type LoginLengths struct {
-	TokenLength   time.Duration `env:"TOKEN_DURATION"`
-	SessionLength time.Duration `env:"SESSION_DURATION"`
+type loginLengths struct {
+	TokenLength      time.Duration `env:"TOKEN_DURATION"`
+	SessionLength    time.Duration `env:"SESSION_DURATION"`
+	ActivationLength time.Duration `env:"ACTIVATION_DURATION"`
 }
 
 func main() {
@@ -43,23 +45,29 @@ func main() {
 		log.Fatal().Err(err).Msg("Error loading .env file")
 	}
 
-	var config Config
-	if err := envconfig.Process(context.Background(), &config); err != nil {
+	var conf config
+	if err := envconfig.Process(context.Background(), &conf); err != nil {
 		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
 	}
 
-	sessionAuth := jwtauth.New("HS256", []byte(config.JWTSecret), nil)
-	dbUrl := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		config.PgHost,
-		config.PgPort,
-		config.PgUser,
-		config.PgPass,
-		config.PgDB,
+	var email emailhelper.ActivationMailDriver
+	email, err := emailhelper.NewActivationMailHelper(context.Background())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Required enviroment keys was not set up")
+	}
+
+	sessionAuth := jwtauth.New("HS256", []byte(conf.JWTSecret), nil)
+	dbURL := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		conf.PgHost,
+		conf.PgPort,
+		conf.PgUser,
+		conf.PgPass,
+		conf.PgDB,
 	)
 
-	db, err := database.StartDB(dbUrl)
+	db, err := database.StartDB(dbURL)
 	if err != nil {
-		log.Panic().Err(err).Str("database link", dbUrl).Msg("Error starting database")
+		log.Panic().Err(err).Str("database link", dbURL).Msg("Error starting database")
 	}
 	if err := db.InitDB(context.Background()); err != nil {
 		log.Panic().Err(err).Msg("Error initializing database")
@@ -72,8 +80,8 @@ func main() {
 		return
 	}
 
-	sessionLength := config.LoginLengths.SessionLength
-	tokenLength := config.LoginLengths.TokenLength
+	sessionLength := conf.LoginLengths.SessionLength
+	tokenLength := conf.LoginLengths.TokenLength
 	r := chi.NewRouter()
 
 	r.Use(middleware.CleanPath)
@@ -83,10 +91,18 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
+		r.Post("/register", endpoints.RegisterPost(db, email, conf.LoginLengths.ActivationLength))
+		r.Post("/register/google", endpoints.RegisterGoogle(db, gValidator, email, conf.LoginLengths.ActivationLength))
 	})
 
-	log.Info().Int("Server port", config.Port).Msg("Server started")
-	if err = http.ListenAndServe(":"+strconv.Itoa(config.Port), r); err != http.ErrServerClosed {
+	r.Group(func(r chi.Router) {
+		r.Use(jwtauth.Verifier(sessionAuth))
+		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
+
+	})
+
+	log.Info().Int("Server port", conf.Port).Msg("Server started")
+	if err = http.ListenAndServe(":"+strconv.Itoa(conf.Port), r); err != http.ErrServerClosed {
 		log.Error().Err(err).Msg("Server stopped with error")
 	} else {
 		log.Info().Msg("Server stopped normally")

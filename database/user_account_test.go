@@ -39,6 +39,23 @@ func (tu *testUUID) Match(value driver.Value) bool {
 	}
 }
 
+type testString struct {
+	str string
+}
+
+func (tu *testString) Match(value driver.Value) bool {
+	switch v := value.(type) {
+	case []byte:
+		tu.str = string(v)
+		return true
+	case string:
+		tu.str = v
+		return true
+	default:
+		return false
+	}
+}
+
 const expEmail = "a@b.c"
 const expPassword = "password"
 const expGID = "abcdefgh-ijkl"
@@ -72,10 +89,10 @@ func TestSuccessfulLogin(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	loginStmt.Prepare(ctx, d)
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	loginRefreshStmt.Prepare(ctx, d)
+	err = loginRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Nil(t, err, "unexpected error in a successful login test")
@@ -98,7 +115,7 @@ func TestNotFoundLogin(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
-	loginStmt.Prepare(ctx, d)
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -131,7 +148,7 @@ func TestNotActiveLogin(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	loginStmt.Prepare(ctx, d)
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -164,7 +181,7 @@ func TestFailedLogins(t *testing.T) {
 		RowsWillBeClosed()
 	mock.ExpectRollback()
 
-	loginStmt.Prepare(ctx, d)
+	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
@@ -292,5 +309,78 @@ func TestFailedLoginsGoogle(t *testing.T) {
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)
 	assert.Empty(t, id, "unexpected output in a failed login test")
 	assert.Equal(t, ErrWrongID, err, "function should've returned ErrWrongPass error")
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+const expName = "Joko"
+
+func TestSuccessfulRegister(t *testing.T) {
+	ctx := context.Background()
+
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+
+	expDur := time.Minute * time.Duration(10)
+
+	db := DBInstance{d}
+
+	th := &testString{}
+	test1 := mock.ExpectPrepare("SELECT")
+	test2 := mock.ExpectPrepare("INSERT")
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnError(sql.ErrNoRows)
+	tu := &testUUID{}
+	test2.ExpectExec().
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = loginStmt.Prepare(ctx, d)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	err = registerStmt.Prepare(ctx, d)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	actToken, _, err := db.Register(ctx, expEmail, expPassword, expName, expDur)
+	if assert.Nil(t, err, "unexpected error in a successful register test") {
+		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
+	}
+	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(th.str), []byte(expPassword)), "function should've returned a correctly-hashed password")
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestSuccessfulRegisterGoogle(t *testing.T) {
+	ctx := context.Background()
+
+	d, mock, err := sqlmock.New()
+	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
+	defer d.Close()
+	expDur := time.Minute * time.Duration(10)
+
+	db := DBInstance{d}
+
+	th := &testString{}
+	test1 := mock.ExpectPrepare("SELECT")
+	test2 := mock.ExpectPrepare("INSERT")
+	test1.ExpectQuery().
+		WithArgs(expEmail).
+		WillReturnError(sql.ErrNoRows)
+	tu := &testUUID{}
+	test2.ExpectExec().
+		WithArgs(expEmail, th, tu, sqlmock.AnyArg(), expName).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = loginGoogleStmt.Prepare(ctx, d)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	err = registerGoogleStmt.Prepare(ctx, d)
+	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
+
+	actToken, _, err := db.RegisterGoogle(ctx, expEmail, expGID, expName, expDur)
+	if assert.Nil(t, err, "unexpected error in a successful register-google test") {
+		assert.Equal(t, tu.uuid, actToken, "function should've returned a new session id")
+	}
+	assert.Equal(t, expGID, th.str, "function should've returned a correct google account id")
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
