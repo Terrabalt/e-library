@@ -15,6 +15,7 @@ const getNewBooksStr = `
 		b.cover_image,
 		b.author,
 		b.readers_count,
+		av.rating,
 		EXISTS (
 			SELECT
 				1
@@ -26,6 +27,7 @@ const getNewBooksStr = `
 		) AS is_favorited
 	FROM
 		book b
+		INNER JOIN rating_avg AS av ON b.id = av.id 
 	WHERE
 		b.is_new
 	ORDER BY
@@ -49,6 +51,7 @@ const getPopularBooksStr = `
 		b.cover_image,
 		b.author,
 		b.readers_count,
+		av.rating,
 		EXISTS (
 			SELECT
 				1
@@ -60,6 +63,7 @@ const getPopularBooksStr = `
 		) AS is_favorited
 	FROM
 		book b
+		INNER JOIN rating_avg AS av ON b.id = av.id 
 	WHERE
 		b.is_popular
 	ORDER BY
@@ -117,6 +121,7 @@ func (db DBInstance) GetNewBooks(ctx context.Context, accountID string) ([]Book,
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
@@ -149,6 +154,7 @@ func (db DBInstance) GetNewBooksPaginated(ctx context.Context, limit int, offset
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
@@ -178,6 +184,7 @@ func (db DBInstance) GetPopularBooks(ctx context.Context, accountID string) ([]B
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
@@ -210,6 +217,7 @@ func (db DBInstance) GetPopularBooksPaginated(ctx context.Context, limit int, of
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
