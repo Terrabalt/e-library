@@ -27,7 +27,7 @@ const getNewBooksStr = `
 		) AS is_favorited
 	FROM
 		book b
-		INNER JOIN rating_avg AS av ON b.id = av.id 
+		LEFT JOIN rating_avg AS av ON b.id = av.id 
 	WHERE
 		b.is_new
 	ORDER BY
@@ -63,7 +63,7 @@ const getPopularBooksStr = `
 		) AS is_favorited
 	FROM
 		book b
-		INNER JOIN rating_avg AS av ON b.id = av.id 
+		LEFT JOIN rating_avg AS av ON b.id = av.id 
 	WHERE
 		b.is_popular
 	ORDER BY
