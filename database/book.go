@@ -18,6 +18,7 @@ var searchBooks = dbStatement{
 		b.cover_image,
 		b.author,
 		b.readers_count,
+		av.rating,
 		EXISTS (
 			SELECT
 				1
@@ -29,6 +30,7 @@ var searchBooks = dbStatement{
 		) AS is_favorited
 	FROM
 		book b
+		LEFT JOIN rating_avg AS av ON b.id = av.id
 	WHERE
 		b.title ILIKE '%' || $2 || '%'
 		OR b.author ILIKE '%' || $2 || '%'
@@ -69,6 +71,7 @@ func (db DBInstance) SearchBooks(ctx context.Context, query string, accountID st
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
