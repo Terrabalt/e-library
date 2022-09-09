@@ -18,6 +18,7 @@ import (
 type DB interface {
 	UserAccountInterface
 	UserSessionInterface
+	BookInterface
 	InitDB(ctx context.Context) error
 	CloseDB()
 }
