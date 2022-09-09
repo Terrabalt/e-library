@@ -97,6 +97,7 @@ type Book struct {
 	Cover   URL
 	Summary string
 	Readers int
+	Rating  float32
 	IsFav   bool
 }
 
