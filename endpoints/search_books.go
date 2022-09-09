@@ -5,6 +5,7 @@ import (
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -19,7 +20,7 @@ func SearchBooks(
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		query := r.URL.Query().Get("query")
+		query := strings.TrimSpace(r.URL.Query().Get("query"))
 		if len(query) < 3 {
 			render.Render(w, r, BadRequestError(errSearchQueryTooShort))
 			return
