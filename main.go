@@ -99,6 +99,10 @@ func main() {
 		r.Use(jwtauth.Verifier(sessionAuth))
 		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
 
+		r.Get("/books/new/homepage", endpoints.HomepageListNewBooks(db))
+		r.Get("/books/new/more", endpoints.ListMoreNewBooks(db))
+		r.Get("/books/popular/homepage", endpoints.HomepageListPopularBooks(db))
+		r.Get("/books/popular/more", endpoints.ListMorePopularBooks(db))
 		r.Get("/books/search", endpoints.SearchBooks(db))
 	})
 
