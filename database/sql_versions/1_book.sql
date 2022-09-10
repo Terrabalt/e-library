@@ -52,9 +52,9 @@ CREATE OR REPLACE VIEW rating_avg AS
 		(
 			COALESCE(
 				avg(rate_book.rating), 
-				(0):: numeric
+				(0)
 			)
-		):: numeric(10, 2) AS rating 
+		) AS rating 
 	FROM 
 		book 
 		LEFT JOIN rate_book ON book.id = rate_book.book_id 
