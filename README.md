@@ -124,6 +124,7 @@ response - 200 OK
             "author": "Hayashi Naotaka",
             "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
             "readers": 0,
+            "rating": 3.5,
             "is_favorite": false
         },
     ]
@@ -153,6 +154,7 @@ response - 200 OK
             "author": "Hayashi Naotaka",
             "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
             "readers": 0,
+            "rating": 3.5,
             "is_favorite": false
         },
     ]
@@ -182,6 +184,7 @@ response - 200 OK
             "author": "Hayashi Naotaka",
             "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
             "readers": 0,
+            "rating": 3.5,
             "is_favorite": false
         },
     ]
@@ -211,6 +214,7 @@ response - 200 OK
             "author": "Hayashi Naotaka",
             "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
             "readers": 0,
+            "rating": 3.5,
             "is_favorite": false
         },
     ]
@@ -244,6 +248,7 @@ response - 200 OK
             "author": "Hayashi Naotaka",
             "cover_url": "https://s2.vndb.org/cv/59/49759.jpg",
             "readers": 0,
+            "rating": 3.5,
             "is_favorite": false
         },
     ]
