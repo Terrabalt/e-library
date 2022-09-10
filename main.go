@@ -101,6 +101,8 @@ func main() {
 
 		r.Get("/books/new/homepage", endpoints.HomepageListNewBooks(db))
 		r.Get("/books/new/more", endpoints.ListMoreNewBooks(db))
+		r.Get("/books/popular/homepage", endpoints.HomepageListPopularBooks(db))
+		r.Get("/books/popular/more", endpoints.ListMorePopularBooks(db))
 	})
 
 	log.Info().Int("Server port", conf.Port).Msg("Server started")

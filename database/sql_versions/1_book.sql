@@ -45,3 +45,18 @@ CREATE TABLE IF NOT EXISTS rate_book (
 	CONSTRAINT rate_book_fk_user_id FOREIGN KEY (user_id) REFERENCES user_account(email),
 	CONSTRAINT rate_book_fk_book_id FOREIGN KEY (book_id) REFERENCES book(id)
 );
+
+CREATE OR REPLACE VIEW rating_avg AS 
+	SELECT 
+		book.id, 
+		(
+			COALESCE(
+				avg(rate_book.rating), 
+				(0):: numeric
+			)
+		):: numeric(10, 2) AS rating 
+	FROM 
+		book 
+		LEFT JOIN rate_book ON book.id = rate_book.book_id 
+	GROUP BY 
+		book.id;

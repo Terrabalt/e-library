@@ -15,6 +15,7 @@ const getNewBooksStr = `
 		b.cover_image,
 		b.author,
 		b.readers_count,
+		av.rating,
 		EXISTS (
 			SELECT
 				1
@@ -26,6 +27,7 @@ const getNewBooksStr = `
 		) AS is_favorited
 	FROM
 		book b
+		LEFT JOIN rating_avg AS av ON b.id = av.id 
 	WHERE
 		b.is_new
 	ORDER BY
@@ -35,7 +37,6 @@ var getNewBooks = dbStatement{
 	nil,
 	fmt.Sprintf(getNewBooksStr, ""),
 }
-
 var getNewBooksPaginated = dbStatement{
 	nil,
 	fmt.Sprintf(getNewBooksStr, `
@@ -43,15 +44,53 @@ var getNewBooksPaginated = dbStatement{
 				$2 OFFSET $3`),
 }
 
+const getPopularBooksStr = `
+	SELECT
+		b.id,
+		b.title,
+		b.cover_image,
+		b.author,
+		b.readers_count,
+		av.rating,
+		EXISTS (
+			SELECT
+				1
+			FROM
+				fav_book f
+			WHERE
+				f.user_id = $1
+				AND f.book_id = b.id
+		) AS is_favorited
+	FROM
+		book b
+		LEFT JOIN rating_avg AS av ON b.id = av.id 
+	WHERE
+		b.is_popular
+	ORDER BY
+	b.title ASC%s;`
+
+var getPopularBooks = dbStatement{
+	nil, fmt.Sprintf(getPopularBooksStr, ""),
+}
+var getPopularBooksPaginated = dbStatement{
+	nil, fmt.Sprintf(getPopularBooksStr, `
+	LIMIT
+		$2 OFFSET $3`),
+}
+
 type BookInterface interface {
 	GetNewBooks(ctx context.Context, accountID string) ([]Book, error)
 	GetNewBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]Book, error)
+	GetPopularBooks(ctx context.Context, accountID string) ([]Book, error)
+	GetPopularBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]Book, error)
 }
 
 func init() {
 	prepareStatements = append(prepareStatements,
 		&getNewBooks,
 		&getNewBooksPaginated,
+		&getPopularBooks,
+		&getPopularBooksPaginated,
 	)
 }
 
@@ -62,6 +101,7 @@ type Book struct {
 	Cover   URL
 	Summary string
 	Readers int
+	Rating  float32
 	IsFav   bool
 }
 
@@ -81,6 +121,7 @@ func (db DBInstance) GetNewBooks(ctx context.Context, accountID string) ([]Book,
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
@@ -93,6 +134,7 @@ func (db DBInstance) GetNewBooks(ctx context.Context, accountID string) ([]Book,
 
 	return books, nil
 }
+
 func (db DBInstance) GetNewBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]Book, error) {
 	var books []Book
 	if limit <= 0 || offset < 0 {
@@ -112,6 +154,70 @@ func (db DBInstance) GetNewBooksPaginated(ctx context.Context, limit int, offset
 			&book.Cover,
 			&book.Author,
 			&book.Readers,
+			&book.Rating,
+			&book.IsFav,
+		); err != nil {
+			return nil, err
+		}
+		books = append(books, book)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return books, nil
+}
+
+func (db DBInstance) GetPopularBooks(ctx context.Context, accountID string) ([]Book, error) {
+	var books []Book
+	rows, err := getPopularBooks.Statement.QueryContext(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		book := Book{}
+		if err := rows.Scan(
+			&book.ID,
+			&book.Title,
+			&book.Cover,
+			&book.Author,
+			&book.Readers,
+			&book.Rating,
+			&book.IsFav,
+		); err != nil {
+			return nil, err
+		}
+		books = append(books, book)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return books, nil
+}
+
+func (db DBInstance) GetPopularBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]Book, error) {
+	var books []Book
+	if limit <= 0 || offset < 0 {
+		return nil, errors.New("function parameters outside the bounds")
+	}
+	rows, err := getPopularBooks.Statement.QueryContext(ctx, accountID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		book := Book{}
+		if err := rows.Scan(
+			&book.ID,
+			&book.Title,
+			&book.Cover,
+			&book.Author,
+			&book.Readers,
+			&book.Rating,
 			&book.IsFav,
 		); err != nil {
 			return nil, err
