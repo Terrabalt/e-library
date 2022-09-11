@@ -233,7 +233,7 @@ func (db DBInstance) GetPopularBooksPaginated(ctx context.Context, limit int, of
 	if limit <= 0 || offset < 0 {
 		return nil, errors.New("function parameters outside the bounds")
 	}
-	rows, err := getPopularBooks.Statement.QueryContext(ctx, accountID, limit, offset)
+	rows, err := getPopularBooksPaginated.Statement.QueryContext(ctx, accountID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
