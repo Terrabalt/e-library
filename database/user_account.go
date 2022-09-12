@@ -15,6 +15,8 @@ type UserAccountInterface interface {
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	RefreshActivation(ctx context.Context, email string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	ActivateAccount(ctx context.Context, email string, activationToken string) error
 }
 
 var loginStmt = dbStatement{
@@ -72,6 +74,16 @@ var refreshActivationStmt = dbStatement{
 		email = $4`,
 }
 
+var checkActivationStmt = dbStatement{
+	nil, `
+	SELECT 
+		activated, activation_token, expires_in
+	FROM 
+		user_account 
+	WHERE 
+		email = $1`,
+}
+
 func init() {
 	prepareStatements = append(prepareStatements,
 		&loginStmt,
@@ -80,6 +92,7 @@ func init() {
 		&registerStmt,
 		&registerGoogleStmt,
 		&refreshActivationStmt,
+		&checkActivationStmt,
 	)
 }
 
@@ -261,6 +274,27 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 }
 
 func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+	var activated bool
+	var token sql.NullString
+	var exp sql.NullTime
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", nil, err
+	}
+	defer tx.Rollback()
+
+	row := tx.StmtContext(ctx, checkActivationStmt.Statement).QueryRowContext(ctx, email)
+	if err := row.Scan(&activated, &token, &exp); err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil, ErrAccountNotFound
+		}
+		return "", nil, err
+	}
+
+	if activated {
+		return "", nil, ErrAccountAlreadyActivated
+	}
+
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
 		return "", nil, err
@@ -269,16 +303,44 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string, durati
 
 	v := time.Now().Add(duration)
 	validUntil = &v
-	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
-	if err != nil {
+	if _, err = tx.StmtContext(ctx, refreshActivationStmt.Statement).
+		ExecContext(ctx, false, randomUUID, *validUntil, email); err != nil {
 		return "", nil, err
 	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
+	if tx.Commit(); err != nil {
 		return "", nil, err
-	}
-	if rowsAffected == 0 {
-		return "", nil, ErrAccountNotFound
 	}
 	return
+}
+
+var ErrAccountAlreadyActivated = errors.New("")
+var ErrAccountActivationDataMalformed = errors.New("account is not active yet token or expires_in rows missing")
+var ErrAccountActivationFailed = errors.New("")
+
+func (db DBInstance) ActivateAccount(ctx context.Context, email string, activationToken string) error {
+	var activated bool
+	var token sql.NullString
+	var exp sql.NullTime
+	row := checkActivationStmt.Statement.QueryRowContext(ctx, email)
+	if err := row.Scan(&activated, &token, &exp); err != nil {
+		if err == sql.ErrNoRows {
+			return ErrAccountNotFound
+		}
+		return err
+	}
+
+	if activated {
+		return ErrAccountAlreadyActivated
+	}
+	if !token.Valid || !exp.Valid {
+		return ErrAccountActivationDataMalformed
+	}
+	if activationToken != token.String || exp.Time.Before(time.Now()) {
+		return ErrAccountActivationFailed
+	}
+
+	if _, err := refreshActivationStmt.Statement.ExecContext(ctx, true, nil, nil, email); err != nil {
+		return err
+	}
+	return nil
 }
