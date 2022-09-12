@@ -46,7 +46,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := SearchBooks(dbMock)
+	handler := searchBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -64,7 +64,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = SearchBooks(dbMock)
+	handler = searchBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -84,7 +84,7 @@ func TestFailedSearchBooks(t *testing.T) {
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := SearchBooks(dbMock)
+	handler := searchBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
@@ -101,7 +101,7 @@ func TestFailedSearchBooks(t *testing.T) {
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = SearchBooks(dbMock)
+	handler = searchBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}

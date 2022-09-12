@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ListMorePopularBooks(
+func listMorePopularBooks(
 	db database.BookInterface,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

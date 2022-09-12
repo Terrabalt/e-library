@@ -14,7 +14,7 @@ import (
 
 var errSearchQueryTooShort = errors.New("search query too short")
 
-func SearchBooks(
+func searchBooks(
 	db database.BookInterface,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
