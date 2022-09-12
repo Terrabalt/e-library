@@ -201,10 +201,11 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	var nullHash sql.NullString
 	var activated bool
 	err = row.Scan(&nullHash, &activated)
-	if err == nil && nullHash.Valid {
-		return "", nil, ErrAccountExisted
-	}
-	if err != sql.ErrNoRows {
+	if err == nil {
+		if nullHash.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+	} else if err != sql.ErrNoRows {
 		return "", nil, err
 	}
 
@@ -233,11 +234,12 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
 	var nullGID sql.NullString
 	var activated bool
-	err = row.Scan(&gID, &activated)
-	if err == nil && nullGID.Valid {
-		return "", nil, ErrAccountExisted
-	}
-	if err != sql.ErrNoRows {
+	err = row.Scan(&nullGID, &activated)
+	if err == nil {
+		if nullGID.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+	} else if err != sql.ErrNoRows {
 		return "", nil, err
 	}
 
