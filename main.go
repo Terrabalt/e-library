@@ -97,7 +97,7 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(jwtauth.Verifier(sessionAuth))
-		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
+		r.Use(endpoints.SessionAuthenticatorMiddleware())
 
 		r.Get("/books", endpoints.ListBooks(db))
 	})
