@@ -20,21 +20,21 @@ func listMorePopularBooks(
 		_, token, err := jwtauth.FromContext(ctx)
 		if err != nil {
 			log.Debug().Err(err).Msg("Getting more-popular-books-list asker account failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
 		var sch sessiontoken.TokenClaimsSchema
 		if err := sch.StrictFromInterface(token); err != nil {
-			log.Debug().Err(err).Msg("Listing more popular books on Homepage failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
+			log.Debug().Err(err).Msg("Getting more-popular-books-list asker account failed")
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
 		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 		books, err := db.GetPopularBooksPaginated(ctx, 20, page, sch.Email)
 		if err != nil {
-			log.Error().Err(err).Msg("Listing more popular books on Homepage failed")
+			log.Error().Err(err).Msg("Listing more popular books failed")
 			render.Render(w, r, InternalServerError())
 			return
 		}

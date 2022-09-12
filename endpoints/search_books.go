@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -27,15 +26,8 @@ func searchBooks(
 			return
 		}
 
-		_, token, err := jwtauth.FromContext(ctx)
+		sch, err := sessiontoken.FromContext(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("Getting book-searcher account failed unexpectedly")
-			render.Render(w, r, InternalServerError())
-			return
-		}
-
-		var sch sessiontoken.TokenClaimsSchema
-		if err := sch.FromInterface(token); err != nil {
 			log.Error().Err(err).Msg("Getting book-searcher account failed unexpectedly")
 			render.Render(w, r, InternalServerError())
 			return

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 )
@@ -17,17 +16,10 @@ func listMoreNewBooks(
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		_, token, err := jwtauth.FromContext(ctx)
+		sch, err := sessiontoken.FromContext(ctx)
 		if err != nil {
 			log.Debug().Err(err).Msg("Getting more-new-books-list asker account failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
-			return
-		}
-
-		var sch sessiontoken.TokenClaimsSchema
-		if err := sch.StrictFromInterface(token); err != nil {
-			log.Debug().Err(err).Msg("Listing more new books on Homepage failed")
-			render.Render(w, r, BadRequestError(ErrSessionTokenMissingOrInvalid))
+			render.Render(w, r, InternalServerError())
 			return
 		}
 

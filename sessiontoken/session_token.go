@@ -1,6 +1,7 @@
 package sessiontoken
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -75,4 +76,16 @@ func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema,
 	jwtauth.SetExpiryIn(c, tokenLength)
 
 	return tokenAuth.Encode(c)
+}
+
+func FromContext(ctx context.Context) (*TokenClaimsSchema, error) {
+	_, token, err := jwtauth.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var sch TokenClaimsSchema
+	if err := sch.FromInterface(token); err != nil {
+		return nil, err
+	}
+	return &sch, nil
 }
