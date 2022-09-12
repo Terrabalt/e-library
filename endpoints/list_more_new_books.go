@@ -4,6 +4,7 @@ import (
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -30,7 +31,8 @@ func listMoreNewBooks(
 			return
 		}
 
-		books, err := db.GetNewBooks(ctx, sch.Email)
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		books, err := db.GetNewBooksPaginated(ctx, 20, page, sch.Email)
 		if err != nil {
 			log.Error().Err(err).Msg("Listing more new books on Homepage failed")
 			render.Render(w, r, InternalServerError())

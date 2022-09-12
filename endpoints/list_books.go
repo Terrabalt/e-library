@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/render"
 )
 
 func ListBooks(
@@ -15,20 +17,19 @@ func ListBooks(
 
 		criteria := strings.TrimSpace(r.URL.Query().Get("criteria"))
 		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-
+		if page < 0 {
+			render.Render(w, r, InternalServerError())
+			return
+		}
 		switch criteria {
+		case "newHomepage":
+			homepageListNewBooks(db)(w, r)
 		case "new":
-			if page > 0 {
-				listMoreNewBooks(db)(w, r)
-			} else {
-				homepageListNewBooks(db)(w, r)
-			}
+			listMoreNewBooks(db)(w, r)
+		case "popularHomepage":
+			homepageListPopularBooks(db)(w, r)
 		case "popular":
-			if page > 0 {
-				listMorePopularBooks(db)(w, r)
-			} else {
-				homepageListPopularBooks(db)(w, r)
-			}
+			listMorePopularBooks(db)(w, r)
 		case "search":
 		default:
 			searchBooks(db)(w, r)

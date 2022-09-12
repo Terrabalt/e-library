@@ -67,7 +67,7 @@ const getPopularBooksStr = `
 	WHERE
 		b.is_popular
 	ORDER BY
-	b.title ASC%s;`
+		b.title ASC%s;`
 
 var getPopularBooks = dbStatement{
 	nil, fmt.Sprintf(getPopularBooksStr, ""),
@@ -103,11 +103,13 @@ var searchBooks = dbStatement{
 		b.title ILIKE '%' || $2 || '%'
 		OR b.author ILIKE '%' || $2 || '%'
 	ORDER BY
-		b.title ASC;`,
+		b.title ASC
+	LIMIT
+		$3 OFFSET $4;`,
 }
 
 type BookInterface interface {
-	SearchBooks(ctx context.Context, query string, accountID string) ([]Book, error)
+	SearchBooks(ctx context.Context, limit int, offset int, query string, accountID string) ([]Book, error)
 	GetNewBooks(ctx context.Context, accountID string) ([]Book, error)
 	GetNewBooksPaginated(ctx context.Context, limit int, offset int, accountID string) ([]Book, error)
 	GetPopularBooks(ctx context.Context, accountID string) ([]Book, error)
@@ -261,7 +263,7 @@ func (db DBInstance) GetPopularBooksPaginated(ctx context.Context, limit int, of
 	return books, nil
 }
 
-func (db DBInstance) SearchBooks(ctx context.Context, query string, accountID string) ([]Book, error) {
+func (db DBInstance) SearchBooks(ctx context.Context, limit int, offset int, query string, accountID string) ([]Book, error) {
 	var books []Book
 	rows, err := searchBooks.Statement.QueryContext(ctx, accountID, query)
 	if err != nil {

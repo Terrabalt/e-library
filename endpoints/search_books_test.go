@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) SearchBooks(ctx context.Context, query string, accountID string) ([]database.Book, error) {
+func (db dBMock) SearchBooks(ctx context.Context, limit int, offset int, query string, accountID string) ([]database.Book, error) {
 	args := db.Called(query, accountID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

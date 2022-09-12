@@ -305,7 +305,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 	err = searchBooks.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	books, err := db.SearchBooks(ctx, expQuery, expEmail)
+	books, err := db.SearchBooks(ctx, 20, 0, expQuery, expEmail)
 	if assert.Nil(t, err, "unexpected error in a successful search books test") {
 		assert.Equal(t, expBooks, books, "function should've returned a list of searched-for books")
 	}

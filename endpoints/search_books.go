@@ -5,6 +5,7 @@ import (
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/sessiontoken"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/jwtauth"
@@ -40,7 +41,8 @@ func searchBooks(
 			return
 		}
 
-		books, err := db.SearchBooks(ctx, query, sch.Email)
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		books, err := db.SearchBooks(ctx, 20, page, query, sch.Email)
 		if err != nil {
 			log.Error().Err(err).Str("query", query).Str("account", sch.Email).Msg("Searching book failed")
 			render.Render(w, r, InternalServerError())
