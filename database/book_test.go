@@ -19,6 +19,7 @@ func TestSuccessfulNewBooks(t *testing.T) {
 		Author:  "MC2",
 		Cover:   URLMustParse("https://example.com"),
 		Readers: 10,
+		Rating:  3.5,
 		IsFav:   true,
 	}
 	expBooks := []Book{
@@ -36,6 +37,7 @@ func TestSuccessfulNewBooks(t *testing.T) {
 			"b.cover_image",
 			"b.author",
 			"b.readers_count",
+			"av.rating",
 			"is_favorited"})
 	for _, b := range expBooks {
 		rows.AddRow(
@@ -44,6 +46,7 @@ func TestSuccessfulNewBooks(t *testing.T) {
 			b.Cover.String(),
 			b.Author,
 			b.Readers,
+			b.Rating,
 			b.IsFav,
 		)
 	}
@@ -96,6 +99,7 @@ func TestSuccessfulNewBooksPaginated(t *testing.T) {
 			"b.cover_image",
 			"b.author",
 			"b.readers_count",
+			"av.rating",
 			"is_favorited"})
 	for _, b := range expBooks {
 		rows.AddRow(
@@ -104,6 +108,7 @@ func TestSuccessfulNewBooksPaginated(t *testing.T) {
 			b.Cover.String(),
 			b.Author,
 			b.Readers,
+			b.Rating,
 			b.IsFav,
 		)
 	}
@@ -156,6 +161,7 @@ func TestSuccessfulPopularBooks(t *testing.T) {
 			"b.cover_image",
 			"b.author",
 			"b.readers_count",
+			"av.rating",
 			"is_favorited"})
 	for _, b := range expBooks {
 		rows.AddRow(
@@ -164,6 +170,7 @@ func TestSuccessfulPopularBooks(t *testing.T) {
 			b.Cover.String(),
 			b.Author,
 			b.Readers,
+			b.Rating,
 			b.IsFav,
 		)
 	}
@@ -216,6 +223,7 @@ func TestSuccessfulPopularBooksPaginated(t *testing.T) {
 			"b.cover_image",
 			"b.author",
 			"b.readers_count",
+			"av.rating",
 			"is_favorited"})
 	for _, b := range expBooks {
 		rows.AddRow(
@@ -224,6 +232,7 @@ func TestSuccessfulPopularBooksPaginated(t *testing.T) {
 			b.Cover.String(),
 			b.Author,
 			b.Readers,
+			b.Rating,
 			b.IsFav,
 		)
 	}
@@ -282,6 +291,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 			"b.cover_image",
 			"b.author",
 			"b.readers_count",
+			"av.rating",
 			"is_favorited"})
 	for _, b := range expBooks {
 		rows.AddRow(
@@ -290,6 +300,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 			b.Cover.String(),
 			b.Author,
 			b.Readers,
+			b.Rating,
 			b.IsFav,
 		)
 	}
@@ -298,7 +309,7 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 
 	mock.ExpectPrepare("SELECT").
 		ExpectQuery().
-		WithArgs(expQuery).
+		WithArgs(expEmail, expQuery, 20, 0).
 		WillReturnRows(rows).
 		RowsWillBeClosed()
 

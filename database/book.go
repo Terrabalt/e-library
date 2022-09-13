@@ -265,7 +265,7 @@ func (db DBInstance) GetPopularBooksPaginated(ctx context.Context, limit int, of
 
 func (db DBInstance) SearchBooks(ctx context.Context, limit int, offset int, query string, accountID string) ([]Book, error) {
 	var books []Book
-	rows, err := searchBooks.Statement.QueryContext(ctx, accountID, query)
+	rows, err := searchBooks.Statement.QueryContext(ctx, accountID, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
