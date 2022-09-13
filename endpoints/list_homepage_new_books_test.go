@@ -22,7 +22,7 @@ func (db dBMock) GetNewBooksPaginated(ctx context.Context, limit int, offset int
 }
 
 func TestSuccessfulHomepageListNewBooks(t *testing.T) {
-	path := "/books/new/homepage/"
+	path := "/books?criteria=newHomepage"
 
 	expDBBook := database.Book{
 		ID:      uuid.New(),
@@ -45,7 +45,7 @@ func TestSuccessfulHomepageListNewBooks(t *testing.T) {
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := homepageListNewBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -63,7 +63,7 @@ func TestSuccessfulHomepageListNewBooks(t *testing.T) {
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = homepageListNewBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -77,15 +77,15 @@ func TestSuccessfulHomepageListNewBooks(t *testing.T) {
 }
 
 func TestFailedHomepageListNewBooks(t *testing.T) {
-	path := "/books/new/homepage/"
+	path := "/books?criteria=newHomepage"
 
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := homepageListNewBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
-	expResp, expCode := BadRequestError(ErrSessionTokenMissingOrInvalid).(*ErrorResponse).sentForm()
+	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
 
 	resp := &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A failed Homepage-New-Books-List didn't return the proper response code")
@@ -98,7 +98,7 @@ func TestFailedHomepageListNewBooks(t *testing.T) {
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = homepageListNewBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode = InternalServerError().(*ErrorResponse).sentForm()
