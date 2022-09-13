@@ -41,12 +41,12 @@ func ActivateAccount(
 		if err := db.ActivateAccount(ctx, accountEmail, activationToken); err != nil {
 			if err == database.ErrAccountNotFound {
 				log.Debug().Err(err).Msg("trying to activate an account that couldn't be found")
-				render.Render(w, r, BadRequestError(errAccountNotFound))
+				render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
 				return
 			}
 			if err == database.ErrAccountAlreadyActivated {
 				log.Debug().Err(err).Msg("trying to activate account that has already been activated")
-				render.Render(w, r, BadRequestError(errAccountAlreadyActivated))
+				render.Render(w, r, UnauthorizedRequestError(errAccountAlreadyActivated))
 				return
 			}
 			if err == database.ErrAccountActivationFailed {

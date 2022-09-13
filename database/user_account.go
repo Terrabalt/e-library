@@ -103,6 +103,17 @@ var registerAddGoogleStmt = dbStatement{
 		email = $1`,
 }
 
+var checkActivationStmt = dbStatement{
+	nil, `
+	SELECT 
+		activated, activation_token, expires_in
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
+
 var refreshActivationStmt = dbStatement{
 	nil, `
 	UPDATE user_account
@@ -112,16 +123,6 @@ var refreshActivationStmt = dbStatement{
 		expires_in = $3
 	WHERE
 		email = $4`,
-}
-
-var checkActivationStmt = dbStatement{
-	nil, `
-	SELECT 
-		activated, activation_token, expires_in
-	FROM 
-		user_account 
-	WHERE 
-		email = $1`,
 }
 
 func init() {
@@ -386,9 +387,9 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string, durati
 	return
 }
 
-var ErrAccountAlreadyActivated = errors.New("")
+var ErrAccountAlreadyActivated = errors.New("account is already activated")
 var ErrAccountActivationDataMalformed = errors.New("account is not active yet token or expires_in rows missing")
-var ErrAccountActivationFailed = errors.New("")
+var ErrAccountActivationFailed = errors.New("account activation failed")
 
 func (db DBInstance) ActivateAccount(ctx context.Context, email string, activationToken string) error {
 	var activated bool

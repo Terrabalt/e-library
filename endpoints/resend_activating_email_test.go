@@ -33,16 +33,18 @@ func TestSuccessfulResendActivationEmail(t *testing.T) {
 	mailMock.On("SendActivationEmail", expID.Account, expID.AccountActivation, expTime).
 		Return(nil)
 
-	expCode := http.StatusNoContent
-
 	w, r := mockRequest(t, path, nil, false)
 	handler := ResendActivationEmail(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
-	resp := w.Body.String()
+	expResp := resendResponse{"resend succesful"}
+	expCode := http.StatusOK
 
-	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	assert.Equal(t, "", resp, "A failed Google-Login didn't return the proper error")
+	resp := &resendResponse{}
+	assert.Equal(t, expCode, w.Code, "A successful activation email resend didn't return the proper response code")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful activation email resend didn't return a valid registerResponse object") {
+		assert.Equal(t, expResp, *resp, "A successful activation email resend didn't return a valid response")
+	}
 	dbMock.AssertExpectations(t)
 	mailMock.AssertExpectations(t)
 }
@@ -59,13 +61,14 @@ func TestMalformedResendActivationEmail(t *testing.T) {
 	handler := ResendActivationEmail(dbMock, mailMock, expDur)
 	handler.ServeHTTP(w, r)
 
-	expResp, expCode := BadRequestError(errAccountActivationQueryMalformed).(*ErrorResponse).
+	expResp, expCode := BadRequestError(errResendActivationEmailMalformed).(*ErrorResponse).
 		sentForm()
 
 	resp := &ErrorResponse{}
-	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object") {
-		assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	assert.Equal(t, expCode, w.Code, "A malformed activation email resend didn't return the proper response code")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A malformed activation email resend didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A malformed activation email resend didn't return the proper error")
 	}
 	dbMock.AssertExpectations(t)
+	mailMock.AssertExpectations(t)
 }

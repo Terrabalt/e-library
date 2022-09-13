@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"errors"
 	"ic-rhadi/e_library/database"
 	"ic-rhadi/e_library/emailhelper"
 	"net/http"
@@ -20,6 +21,8 @@ func (b *resendResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+var errResendActivationEmailMalformed = errors.New("email or token query missing")
+
 func ResendActivationEmail(
 	db database.UserAccountInterface,
 	email emailhelper.ActivationMailDriver,
@@ -30,7 +33,7 @@ func ResendActivationEmail(
 		accountEmail := r.URL.Query().Get("email")
 		if accountEmail == "" {
 			log.Debug().Msg("Resend activation email endpoint called with insufficient queries")
-			render.Render(w, r, BadRequestError(errAccountActivationQueryMalformed))
+			render.Render(w, r, BadRequestError(errResendActivationEmailMalformed))
 			return
 		}
 

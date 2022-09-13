@@ -23,16 +23,21 @@ func TestSuccessfulActivateAccount(t *testing.T) {
 	dbMock.On("ActivateAccount", expID.Account, expID.AccountActivation).
 		Return(nil)
 
-	expCode := http.StatusNoContent
-
 	w, r := mockRequest(t, path, nil, false)
 	handler := ActivateAccount(dbMock)
 	handler.ServeHTTP(w, r)
 
-	resp := w.Body.String()
+	expResp := activatedResponse{
+		Message: "account activated",
+		Email:   expID.Account,
+	}
+	expCode := http.StatusOK
 
-	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	assert.Equal(t, "", resp, "A failed Google-Login didn't return the proper error")
+	resp := &activatedResponse{}
+	assert.Equal(t, expCode, w.Code, "A successful account activation didn't return the proper response code")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful account activation didn't return a valid registerResponse object") {
+		assert.Equal(t, expResp, *resp, "A successful account activation didn't return a valid response")
+	}
 	dbMock.AssertExpectations(t)
 }
 
@@ -49,10 +54,9 @@ func TestMalformedActivateAccount(t *testing.T) {
 		sentForm()
 
 	resp := &ErrorResponse{}
-	assert.Equal(t, expCode, w.Code, "A failed Google-Login didn't return the proper response code")
-	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed Google-Login didn't return a valid errorResponse object") {
-		assert.Equal(t, expResp, *resp, "A failed Google-Login didn't return the proper error")
+	assert.Equal(t, expCode, w.Code, "A failed account activation didn't return the proper response code")
+	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A failed account activation didn't return a valid errorResponse object") {
+		assert.Equal(t, expResp, *resp, "A failed account activation didn't return the proper error")
 	}
 	dbMock.AssertExpectations(t)
-
 }
