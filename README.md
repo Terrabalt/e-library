@@ -108,7 +108,7 @@ response - 400 Bad Request; 422 Validation Failed
 }
 ```
 
-### /books/new/homepage:
+### /books?criteria=new:
 
 header -
 ```
@@ -137,7 +137,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books/popular/homepage:
+### /books?criteria=popular:
 
 header -
 ```
@@ -166,7 +166,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books/new/more:
+### /books?criteria=new&page=1:
 
 header -
 ```
@@ -195,7 +195,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books/new/more:
+### /books?criteria=popular&page=1:
 
 header -
 ```
@@ -224,7 +224,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books/search?query=...:
+### /books?criteria=search&query=...:
 
 header -
 ```

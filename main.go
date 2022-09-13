@@ -99,13 +99,9 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(jwtauth.Verifier(sessionAuth))
-		r.Use(endpoints.SessionAuthenticatorMiddleware(db))
+		r.Use(endpoints.SessionAuthenticatorMiddleware())
 
-		r.Get("/books/new/homepage", endpoints.HomepageListNewBooks(db))
-		r.Get("/books/new/more", endpoints.ListMoreNewBooks(db))
-		r.Get("/books/popular/homepage", endpoints.HomepageListPopularBooks(db))
-		r.Get("/books/popular/more", endpoints.ListMorePopularBooks(db))
-		r.Get("/books/search", endpoints.SearchBooks(db))
+		r.Get("/books", endpoints.ListBooks(db))
 	})
 
 	log.Info().Int("Server port", conf.Port).Msg("Server started")

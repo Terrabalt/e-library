@@ -54,6 +54,16 @@ var registerStmt = dbStatement{
 	VALUES
 		($1, $2, $3, $4, $5)`,
 }
+var registerAddStmt = dbStatement{
+	nil, `
+	UPDATE user_account
+	SET
+		password = $2,
+		activation_token = $3,
+		expires_in = $4
+	WHERE
+		email = $1`,
+}
 var registerGoogleStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -61,6 +71,16 @@ var registerGoogleStmt = dbStatement{
 	)
 	VALUES
 		($1, $2, $3, $4, $5)`,
+}
+var registerAddGoogleStmt = dbStatement{
+	nil, `
+	UPDATE user_account
+	SET
+		g_id = $2,
+		activation_token = $3,
+		expires_in = $4
+	WHERE
+		email = $1`,
 }
 
 var refreshActivationStmt = dbStatement{
@@ -90,7 +110,9 @@ func init() {
 		&loginGoogleStmt,
 		&loginRefreshStmt,
 		&registerStmt,
+		&registerAddStmt,
 		&registerGoogleStmt,
+		&registerAddGoogleStmt,
 		&refreshActivationStmt,
 		&checkActivationStmt,
 	)
@@ -210,17 +232,15 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 var ErrAccountExisted error = errors.New("account already existed")
 
 func (db DBInstance) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	row := loginStmt.Statement.QueryRowContext(ctx, email)
-	var nullHash sql.NullString
-	var activated bool
-	err = row.Scan(&nullHash, &activated)
-	if err == nil {
-		if nullHash.Valid || !activated {
-			return "", nil, ErrAccountExisted
-		}
-	} else if err != sql.ErrNoRows {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
 		return "", nil, err
 	}
+	defer tx.Rollback()
+
+	row := tx.StmtContext(ctx, loginStmt.Statement).QueryRowContext(ctx, email)
+	var nullHash sql.NullString
+	var activated bool
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -236,25 +256,41 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
-	_, err = registerStmt.Statement.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
-	if err != nil {
+	err = row.Scan(&nullHash, &activated)
+	if err == nil {
+		if nullHash.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+		_, err = tx.StmtContext(ctx, registerAddStmt.Statement).ExecContext(ctx, email, hash, randomUUID, validUntil)
+		if err != nil {
+			return "", nil, err
+		}
+	} else if err != sql.ErrNoRows {
+		return "", nil, err
+	} else {
+		_, err = tx.StmtContext(ctx, registerStmt.Statement).ExecContext(ctx, email, hash, randomUUID, validUntil, name)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return "", nil, err
 	}
 	return
 }
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", nil, err
+	}
+	defer tx.Rollback()
+
+	row := tx.StmtContext(ctx, loginGoogleStmt.Statement).QueryRowContext(ctx, email)
 	var nullGID sql.NullString
 	var activated bool
 	err = row.Scan(&nullGID, &activated)
-	if err == nil {
-		if nullGID.Valid || !activated {
-			return "", nil, ErrAccountExisted
-		}
-	} else if err != sql.ErrNoRows {
-		return "", nil, err
-	}
 
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
@@ -265,11 +301,26 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
-	_, err = registerGoogleStmt.Statement.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
-	if err != nil {
+	if err == nil {
+		if nullGID.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+		_, err = tx.StmtContext(ctx, registerAddGoogleStmt.Statement).ExecContext(ctx, email, gID, randomUUID, validUntil)
+		if err != nil {
+			return "", nil, err
+		}
+	} else if err != sql.ErrNoRows {
 		return "", nil, err
+	} else {
+		_, err = tx.StmtContext(ctx, registerGoogleStmt.Statement).ExecContext(ctx, email, gID, randomUUID, validUntil, name)
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return "", nil, err
+	}
 	return
 }
 

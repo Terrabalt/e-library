@@ -1,6 +1,7 @@
 package sessiontoken
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -54,7 +55,7 @@ func (token *TokenClaimsSchema) StrictToInterface() (inter map[string]interface{
 	return token.ToInterface()
 }
 
-var ErrTokenMalformed = errors.New("")
+var ErrTokenMalformed = errors.New("important data missing from token schema")
 
 func (token TokenClaimsSchema) CheckMalform() error {
 	if token.Email == "" || token.Session == "" {
@@ -71,8 +72,20 @@ func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema,
 
 	now := time.Now()
 	jwtauth.SetIssuedAt(c, now)
-	c["nbf"] = now.UTC().Unix()
+	c[jwt.NotBeforeKey] = now.UTC().Unix()
 	jwtauth.SetExpiryIn(c, tokenLength)
 
 	return tokenAuth.Encode(c)
+}
+
+func FromContext(ctx context.Context) (*TokenClaimsSchema, error) {
+	_, token, err := jwtauth.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var sch TokenClaimsSchema
+	if err := sch.FromInterface(token); err != nil {
+		return nil, err
+	}
+	return &sch, nil
 }

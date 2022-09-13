@@ -45,7 +45,7 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := ListMoreNewBooks(dbMock)
+	handler := listMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -63,7 +63,7 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = ListMoreNewBooks(dbMock)
+	handler = listMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -82,7 +82,7 @@ func TestFailedListMoreNewBooks(t *testing.T) {
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := ListMoreNewBooks(dbMock)
+	handler := listMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := BadRequestError(ErrSessionTokenMissingOrInvalid).(*ErrorResponse).sentForm()
@@ -98,7 +98,7 @@ func TestFailedListMoreNewBooks(t *testing.T) {
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = ListMoreNewBooks(dbMock)
+	handler = listMoreNewBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode = InternalServerError().(*ErrorResponse).sentForm()

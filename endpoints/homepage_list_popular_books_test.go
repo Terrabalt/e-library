@@ -45,7 +45,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := HomepageListPopularBooks(dbMock)
+	handler := homepageListPopularBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -63,7 +63,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = HomepageListPopularBooks(dbMock)
+	handler = homepageListPopularBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -82,7 +82,7 @@ func TestFailedHomepageListPopularBooks(t *testing.T) {
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := HomepageListPopularBooks(dbMock)
+	handler := homepageListPopularBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
@@ -98,7 +98,7 @@ func TestFailedHomepageListPopularBooks(t *testing.T) {
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = HomepageListPopularBooks(dbMock)
+	handler = homepageListPopularBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
