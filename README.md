@@ -166,7 +166,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books?criteria=new&page=1:
+### /books?criteria=newHomepage&page=0:
 
 header -
 ```
@@ -195,7 +195,7 @@ response - 422 Validation Failed
 }
 ```
 
-### /books?criteria=popular&page=1:
+### /books?criteria=popularHomepage&page=0:
 
 header -
 ```
