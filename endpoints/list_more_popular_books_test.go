@@ -22,7 +22,7 @@ func (db dBMock) GetPopularBooks(ctx context.Context, accountID string) ([]datab
 }
 
 func TestSuccessfulListMorePopularBooks(t *testing.T) {
-	path := "/books/popular/more"
+	path := "/books?criteria=popular&page=0"
 
 	expDBBook := database.Book{
 		ID:      uuid.New(),
@@ -39,13 +39,13 @@ func TestSuccessfulListMorePopularBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetPopularBooks", expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 20, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := listMorePopularBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -59,11 +59,11 @@ func TestSuccessfulListMorePopularBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetPopularBooks", expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 20, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = listMorePopularBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -77,12 +77,12 @@ func TestSuccessfulListMorePopularBooks(t *testing.T) {
 }
 
 func TestFailedListMorePopularBooks(t *testing.T) {
-	path := "/books/popular/more"
+	path := "/books?criteria=popular&page=0"
 
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := listMorePopularBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
@@ -94,11 +94,11 @@ func TestFailedListMorePopularBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetPopularBooks", expID.Account).
+	dbMock.On("GetPopularBooksPaginated", 20, 0, expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = listMorePopularBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}

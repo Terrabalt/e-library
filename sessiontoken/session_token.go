@@ -78,10 +78,15 @@ func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims TokenClaimsSchema,
 	return tokenAuth.Encode(c)
 }
 
+var ErrSessionTokenMissing = errors.New("session token missing")
+
 func FromContext(ctx context.Context) (*TokenClaimsSchema, error) {
 	_, token, err := jwtauth.FromContext(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if len(token) == 0 {
+		return nil, ErrSessionTokenMissing
 	}
 	var sch TokenClaimsSchema
 	if err := sch.FromInterface(token); err != nil {

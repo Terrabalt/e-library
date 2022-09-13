@@ -338,7 +338,7 @@ func TestSuccessfulRegister(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err = registersearchStmt.Prepare(ctx, d)
+	err = registerSearchStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	err = registerStmt.Prepare(ctx, d)
@@ -380,7 +380,7 @@ func TestSuccessfulAddRegister(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err = registersearchStmt.Prepare(ctx, d)
+	err = registerSearchStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	err = registerAddStmt.Prepare(ctx, d)
@@ -417,7 +417,7 @@ func TestSuccessfulRegisterGoogle(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err = registersearchGoogleStmt.Prepare(ctx, d)
+	err = registerSearchGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	err = registerGoogleStmt.Prepare(ctx, d)
@@ -458,7 +458,7 @@ func TestSuccessfulAddRegisterGoogle(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err = registersearchGoogleStmt.Prepare(ctx, d)
+	err = registerSearchGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	err = registerAddGoogleStmt.Prepare(ctx, d)

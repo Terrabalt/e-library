@@ -46,7 +46,7 @@ var loginRefreshStmt = dbStatement{
 		($1, $2, $3)`,
 }
 
-var registersearchStmt = dbStatement{
+var registerSearchStmt = dbStatement{
 	nil, `
 	SELECT 
 		password, activated
@@ -56,7 +56,7 @@ var registersearchStmt = dbStatement{
 		email = $1
 	FOR UPDATE`,
 }
-var registersearchGoogleStmt = dbStatement{
+var registerSearchGoogleStmt = dbStatement{
 	nil, `
 	SELECT 
 		g_id, activated
@@ -129,8 +129,8 @@ func init() {
 		&loginStmt,
 		&loginGoogleStmt,
 		&loginRefreshStmt,
-		&registersearchStmt,
-		&registersearchGoogleStmt,
+		&registerSearchStmt,
+		&registerSearchGoogleStmt,
 		&registerStmt,
 		&registerAddStmt,
 		&registerGoogleStmt,
@@ -260,7 +260,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, registersearchStmt.Statement).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, registerSearchStmt.Statement).QueryRowContext(ctx, email)
 	var nullHash sql.NullString
 	var activated bool
 
@@ -309,7 +309,7 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, registersearchGoogleStmt.Statement).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, registerSearchGoogleStmt.Statement).QueryRowContext(ctx, email)
 	var nullGID sql.NullString
 	var activated bool
 
