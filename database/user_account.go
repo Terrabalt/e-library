@@ -44,6 +44,26 @@ var loginRefreshStmt = dbStatement{
 		($1, $2, $3)`,
 }
 
+var registerSearchStmt = dbStatement{
+	nil, `
+	SELECT 
+		password, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
+var registerSearchGoogleStmt = dbStatement{
+	nil, `
+	SELECT 
+		g_id, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
 var registerStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -97,6 +117,8 @@ func init() {
 		&loginStmt,
 		&loginGoogleStmt,
 		&loginRefreshStmt,
+		&registerSearchStmt,
+		&registerSearchGoogleStmt,
 		&registerStmt,
 		&registerAddStmt,
 		&registerGoogleStmt,
@@ -225,7 +247,7 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, loginStmt.Statement).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, registerSearchStmt.Statement).QueryRowContext(ctx, email)
 	var nullHash sql.NullString
 	var activated bool
 
@@ -274,10 +296,9 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, loginGoogleStmt.Statement).QueryRowContext(ctx, email)
+	row := tx.StmtContext(ctx, registerSearchGoogleStmt.Statement).QueryRowContext(ctx, email)
 	var nullGID sql.NullString
 	var activated bool
-	err = row.Scan(&nullGID, &activated)
 
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
@@ -288,6 +309,7 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
+	err = row.Scan(&nullGID, &activated)
 	if err == nil {
 		if nullGID.Valid || !activated {
 			return "", nil, ErrAccountExisted
