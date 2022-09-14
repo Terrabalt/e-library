@@ -12,25 +12,25 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) RefreshActivation(ctx context.Context, email string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	args := db.Called(email, activationDuration)
-	if args.Get(1) == nil {
-		return "", nil, args.Error(2)
-	}
-	return args.String(0), args.Get(1).(*time.Time), args.Error(2)
+func (db dBMock) RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error {
+	args := db.Called(email, activationToken, validUntil)
+
+	return args.Error(0)
 }
+
 func TestSuccessfulResendActivationEmail(t *testing.T) {
 	path := fmt.Sprintf("/auth/resend?email=%s", expID.Account)
 
 	expDur := time.Minute * time.Duration(10)
 	expTime := time.Now().Add(expDur)
 
+	var expNewActivation string
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("RefreshActivation", expID.Account, expDur).
-		Return(expID.AccountActivation, &expTime, nil)
+	dbMock.On("RefreshActivation", expID.Account, mock.MatchedBy(func(req string) bool { expNewActivation = req; return true }), mock.MatchedBy(func(req time.Time) bool { return req.After(expTime) })).
+		Return(nil)
 
 	mailMock := activationMailDriverMock{&mock.Mock{}}
-	mailMock.On("SendActivationEmail", expID.Account, expID.AccountActivation, expTime).
+	mailMock.On("SendActivationEmail", expID.Account, expNewActivation, mock.MatchedBy(func(req time.Time) bool { return req.After(expTime) })).
 		Return(nil)
 
 	w, r := mockRequest(t, path, nil, false)

@@ -15,7 +15,7 @@ type UserAccountInterface interface {
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
-	RefreshActivation(ctx context.Context, email string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error
 	ActivateAccount(ctx context.Context, email string, activationToken string) error
 }
 
@@ -106,6 +106,17 @@ var registerAddGoogleStmt = dbStatement{
 var checkActivationStmt = dbStatement{
 	nil, `
 	SELECT 
+		activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
+
+var checkActivationTokenStmt = dbStatement{
+	nil, `
+	SELECT 
 		activated, activation_token, expires_in
 	FROM 
 		user_account 
@@ -136,8 +147,9 @@ func init() {
 		&registerAddStmt,
 		&registerGoogleStmt,
 		&registerAddGoogleStmt,
-		&refreshActivationStmt,
 		&checkActivationStmt,
+		&checkActivationTokenStmt,
+		&refreshActivationStmt,
 	)
 }
 
@@ -347,44 +359,34 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	return
 }
 
-func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error {
 	var activated bool
-	var token sql.NullString
-	var exp sql.NullTime
+
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 	defer tx.Rollback()
 
 	row := tx.StmtContext(ctx, checkActivationStmt.Statement).QueryRowContext(ctx, email)
-	if err := row.Scan(&activated, &token, &exp); err != nil {
+	if err := row.Scan(&activated); err != nil {
 		if err == sql.ErrNoRows {
-			return "", nil, ErrAccountNotFound
+			return ErrAccountNotFound
 		}
-		return "", nil, err
+		return err
 	}
 
 	if activated {
-		return "", nil, ErrAccountAlreadyActivated
+		return ErrAccountAlreadyActivated
 	}
 
-	randomUUID, err := uuid.NewRandom()
-	if err != nil {
-		return "", nil, err
-	}
-	activationToken = randomUUID.String()
-
-	v := time.Now().Add(duration)
-	validUntil = &v
-	if _, err = tx.StmtContext(ctx, refreshActivationStmt.Statement).
-		ExecContext(ctx, false, randomUUID, *validUntil, email); err != nil {
-		return "", nil, err
+	if _, err = tx.StmtContext(ctx, refreshActivationStmt.Statement).ExecContext(ctx, false, activationToken, validUntil, email); err != nil {
+		return err
 	}
 	if tx.Commit(); err != nil {
-		return "", nil, err
+		return err
 	}
-	return
+	return nil
 }
 
 var ErrAccountAlreadyActivated = errors.New("account is already activated")
@@ -395,7 +397,12 @@ func (db DBInstance) ActivateAccount(ctx context.Context, email string, activati
 	var activated bool
 	var token sql.NullString
 	var exp sql.NullTime
-	row := checkActivationStmt.Statement.QueryRowContext(ctx, email)
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	row := tx.StmtContext(ctx, checkActivationTokenStmt.Statement).QueryRowContext(ctx, email)
 	if err := row.Scan(&activated, &token, &exp); err != nil {
 		if err == sql.ErrNoRows {
 			return ErrAccountNotFound
@@ -413,8 +420,8 @@ func (db DBInstance) ActivateAccount(ctx context.Context, email string, activati
 		return ErrAccountActivationFailed
 	}
 
-	if _, err := refreshActivationStmt.Statement.ExecContext(ctx, true, nil, nil, email); err != nil {
+	if _, err := tx.StmtContext(ctx, refreshActivationStmt.Statement).ExecContext(ctx, true, nil, nil, email); err != nil {
 		return err
 	}
-	return nil
+	return tx.Commit()
 }

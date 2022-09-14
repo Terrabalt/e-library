@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -37,8 +38,15 @@ func ResendActivationEmail(
 			return
 		}
 
-		activationToken, validUntil, err := db.RefreshActivation(ctx, accountEmail, activationDuration)
+		activationToken, err := uuid.NewRandom()
 		if err != nil {
+			log.Error().Err(err).Msg("Trying to create random uuid returned an error")
+			render.Render(w, r, InternalServerError())
+			return
+		}
+
+		validUntil := time.Now().Add(activationDuration)
+		if err := db.RefreshActivation(ctx, accountEmail, activationToken.String(), validUntil); err != nil {
 			if err == database.ErrAccountNotFound {
 				log.Debug().Err(err).Msg("Resending activating email on an account that couldn't be found")
 				render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
@@ -54,7 +62,7 @@ func ResendActivationEmail(
 			return
 		}
 
-		if err := email.SendActivationEmail(accountEmail, activationToken, *validUntil); err != nil {
+		if err := email.SendActivationEmail(accountEmail, activationToken.String(), validUntil); err != nil {
 			log.Debug().Err(err).Msg("Trying to resend activating email")
 			render.Render(w, r, InternalServerError())
 			return
