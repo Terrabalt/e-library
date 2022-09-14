@@ -8,7 +8,7 @@ import (
 )
 
 type UserSessionInterface interface {
-	CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (isValidSession bool, err error)
+	CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (newRefresh string, err error)
 }
 
 var getRefreshStmt = dbStatement{
@@ -58,10 +58,10 @@ func init() {
 
 var ErrSessionInvalid = errors.New("")
 
-func (db DBInstance) CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (isSessionValid bool, err error) {
+func (db DBInstance) CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (newRefresh string, err error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	defer tx.Rollback()
 
@@ -72,9 +72,9 @@ func (db DBInstance) CheckSession(ctx context.Context, userID string, sessionTok
 
 	if err = row.Scan(&s, &exhausted, &expiresIn); err != nil {
 		if err == sql.ErrNoRows {
-			return false, ErrSessionInvalid
+			return "", ErrSessionInvalid
 		}
-		return false, err
+		return "", err
 	}
 
 	if exhausted || expiresIn.Before(time.Now()) {

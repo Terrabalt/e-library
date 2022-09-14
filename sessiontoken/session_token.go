@@ -29,7 +29,7 @@ func CreateNewSessionToken(tokenAuth *jwtauth.JWTAuth, claims AccessClaimsSchema
 	return tokenAuth.Encode(c)
 }
 
-func CreateNewRefreshToken(tokenAuth *jwtauth.JWTAuth, claims AccessClaimsSchema, tokenLength time.Duration) (token jwt.Token, tokenString string, err error) {
+func CreateNewRefreshToken(tokenAuth *jwtauth.JWTAuth, claims RefreshClaimsSchema, tokenLength time.Duration) (token jwt.Token, tokenString string, err error) {
 	c, err := claims.ToInterface()
 	if err != nil {
 		return nil, "", err
