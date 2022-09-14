@@ -45,7 +45,7 @@ func LoginPost(
 			return
 		}
 
-		_, err := db.Login(ctx, data.Email, data.Password, sessionLength)
+		session, err := db.Login(ctx, data.Email, data.Password, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -59,7 +59,7 @@ func LoginPost(
 			return
 		}
 
-		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+		aT, accessTokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
 			sessiontoken.AccessClaimsSchema{
 				Email: data.Email,
@@ -67,16 +67,30 @@ func LoginPost(
 			tokenLength,
 		)
 		if err != nil {
-			log.Error().Err(err).Msg("Error encoding new token")
+			log.Error().Err(err).Msg("Error encoding new session token")
 			render.Render(w, r, InternalServerError())
 			return
 		}
 
-		token := tokenResponse{
-			Token:     tokenString,
-			Scheme:    "Bearer",
-			ExpiresAt: t.Expiration().Format(time.RFC3339),
+		_, refreshTokenString, err := sessiontoken.CreateNewRefreshToken(
+			sessionAuth,
+			sessiontoken.RefreshClaimsSchema{
+				Email:   data.Email,
+				Session: session,
+			},
+			sessionLength,
+		)
+		if err != nil {
+			log.Error().Err(err).Msg("Error encoding new refresh token")
+			render.Render(w, r, InternalServerError())
+			return
 		}
-		render.Render(w, r, &token)
+
+		render.Render(w, r, &tokenResponse{
+			Session:   accessTokenString,
+			Refresh:   refreshTokenString,
+			Scheme:    "Bearer",
+			ExpiresAt: aT.Expiration().Format(time.RFC3339),
+		})
 	}
 }

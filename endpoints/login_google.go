@@ -50,7 +50,7 @@ func LoginGoogle(
 			return
 		}
 
-		_, err = db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountID, sessionLength)
+		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountID, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -64,7 +64,7 @@ func LoginGoogle(
 			return
 		}
 
-		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+		aT, accessTokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
 			sessiontoken.AccessClaimsSchema{
 				Email: gClaims.Email,
@@ -72,16 +72,30 @@ func LoginGoogle(
 			tokenLength,
 		)
 		if err != nil {
-			log.Error().Err(err).Msg("Error encoding new token")
+			log.Error().Err(err).Msg("Error encoding new session token")
 			render.Render(w, r, InternalServerError())
 			return
 		}
 
-		token := tokenResponse{
-			Token:     tokenString,
-			Scheme:    "Bearer",
-			ExpiresAt: t.Expiration().Format(time.RFC3339),
+		_, refreshTokenString, err := sessiontoken.CreateNewRefreshToken(
+			sessionAuth,
+			sessiontoken.RefreshClaimsSchema{
+				Email:   gClaims.Email,
+				Session: session,
+			},
+			sessionLength,
+		)
+		if err != nil {
+			log.Error().Err(err).Msg("Error encoding new refresh token")
+			render.Render(w, r, InternalServerError())
+			return
 		}
-		render.Render(w, r, &token)
+
+		render.Render(w, r, &tokenResponse{
+			Session:   accessTokenString,
+			Refresh:   refreshTokenString,
+			Scheme:    "Bearer",
+			ExpiresAt: aT.Expiration().Format(time.RFC3339),
+		})
 	}
 }

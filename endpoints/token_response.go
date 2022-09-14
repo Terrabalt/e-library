@@ -7,7 +7,8 @@ import (
 )
 
 type tokenResponse struct {
-	Token     string `json:"token"`
+	Session   string `json:"session_token"`
+	Refresh   string `json:"refresh_token"`
 	Scheme    string `json:"scheme"`
 	ExpiresAt string `json:"expires_at"`
 }
