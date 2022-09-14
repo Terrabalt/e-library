@@ -67,7 +67,7 @@ func LoginPost(
 			tokenLength,
 		)
 		if err != nil {
-			log.Error().Err(err).Msg("Error encoding new session token")
+			log.Error().Err(err).Msg("Error encoding new token")
 			render.Render(w, r, InternalServerError())
 			return
 		}
@@ -80,11 +80,6 @@ func LoginPost(
 			},
 			sessionLength,
 		)
-		if err != nil {
-			log.Error().Err(err).Msg("Error encoding new refresh token")
-			render.Render(w, r, InternalServerError())
-			return
-		}
 
 		render.Render(w, r, &tokenResponse{
 			Session:   accessTokenString,
