@@ -45,7 +45,7 @@ func LoginPost(
 			return
 		}
 
-		session, err := db.Login(ctx, data.Email, data.Password, sessionLength)
+		_, err := db.Login(ctx, data.Email, data.Password, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -61,9 +61,8 @@ func LoginPost(
 
 		t, tokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
-			sessiontoken.TokenClaimsSchema{
-				Email:   data.Email,
-				Session: session,
+			sessiontoken.AccessClaimsSchema{
+				Email: data.Email,
 			},
 			tokenLength,
 		)

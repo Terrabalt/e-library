@@ -50,7 +50,7 @@ func LoginGoogle(
 			return
 		}
 
-		session, err := db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountID, sessionLength)
+		_, err = db.LoginGoogle(ctx, gClaims.Email, gClaims.AccountID, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -66,9 +66,8 @@ func LoginGoogle(
 
 		t, tokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
-			sessiontoken.TokenClaimsSchema{
-				Email:   gClaims.Email,
-				Session: session,
+			sessiontoken.AccessClaimsSchema{
+				Email: gClaims.Email,
 			},
 			tokenLength,
 		)

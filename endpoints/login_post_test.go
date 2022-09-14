@@ -26,9 +26,8 @@ func TestSuccessfulLoginPost(t *testing.T) {
 		Return(expID.Session, nil).Once()
 
 	expCode := http.StatusOK
-	expClaims := sessiontoken.TokenClaimsSchema{
-		Email:   expID.Account,
-		Session: expID.Session,
+	expClaims := sessiontoken.AccessClaimsSchema{
+		Email: expID.Account,
 	}
 
 	w, r := mockRequest(t, path, login, false)
@@ -43,7 +42,7 @@ func TestSuccessfulLoginPost(t *testing.T) {
 
 		tokenMap, err := token.AsMap(context.Background())
 		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
-			var claims sessiontoken.TokenClaimsSchema
+			var claims sessiontoken.AccessClaimsSchema
 			err := claims.FromInterface(tokenMap)
 			if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
 				assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")

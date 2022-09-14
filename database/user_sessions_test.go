@@ -12,16 +12,17 @@ import (
 )
 
 const expSessionToken = "abcdefgh"
+const expTokenFamily = "aassdfdf"
 
 func TestSuccessfulCheckSession(t *testing.T) {
 	ctx := context.Background()
 
 	expOut := true
-	expTime := time.Now()
+	expTime := time.Now().Add(time.Hour)
 
 	var rows = sqlmock.
-		NewRows([]string{"session_valid"}).
-		AddRow(expOut)
+		NewRows([]string{"token_family, exhausted, expires_in"}).
+		AddRow(expTokenFamily, false, expTime)
 
 	d, mock, err := sqlmock.New()
 	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
@@ -31,11 +32,11 @@ func TestSuccessfulCheckSession(t *testing.T) {
 
 	mock.ExpectPrepare("SELECT").
 		ExpectQuery().
-		WithArgs(expEmail, expSessionToken, expTime).
+		WithArgs(expEmail, expSessionToken).
 		WillReturnRows(rows).
 		RowsWillBeClosed()
 
-	err = isValidSessionQuery.Prepare(ctx, d)
+	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)
@@ -52,8 +53,8 @@ func TestFailedCheckSession(t *testing.T) {
 	expTime := time.Now()
 
 	var rows = sqlmock.
-		NewRows([]string{"session_valid"}).
-		AddRow(expOut)
+		NewRows([]string{"token_family, exhausted, expires_in"}).
+		AddRow(expTokenFamily, true, expTime)
 
 	d, mock, err := sqlmock.New()
 	require.NoErrorf(t, err, "an error '%s' was not expected when opening a stub database connection", err)
@@ -63,11 +64,11 @@ func TestFailedCheckSession(t *testing.T) {
 
 	test := mock.ExpectPrepare("SELECT")
 	test.ExpectQuery().
-		WithArgs(expEmail, expSessionToken, expTime).
+		WithArgs(expEmail, expSessionToken).
 		WillReturnRows(rows).
 		RowsWillBeClosed()
 
-	err = isValidSessionQuery.Prepare(ctx, d)
+	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)
@@ -80,7 +81,7 @@ func TestFailedCheckSession(t *testing.T) {
 		NewRows([]string{"session_valid"})
 
 	test.ExpectQuery().
-		WithArgs(expEmail, expSessionToken, expTime).
+		WithArgs(expEmail, expSessionToken).
 		WillReturnRows(rows).
 		RowsWillBeClosed()
 
@@ -107,10 +108,10 @@ func TestErrorCheckSession(t *testing.T) {
 
 	mock.ExpectPrepare("SELECT").
 		ExpectQuery().
-		WithArgs(expEmail, expSessionToken, expTime).
+		WithArgs(expEmail, expSessionToken).
 		WillReturnError(row)
 
-	err = isValidSessionQuery.Prepare(ctx, d)
+	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)

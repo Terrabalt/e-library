@@ -70,9 +70,8 @@ func mockRequest(t *testing.T, path string, body interface{}, withToken bool, pa
 }
 
 func constToken(t *testing.T, tokenAuth *jwtauth.JWTAuth, email, session string) (jwt.Token, string, error) {
-	expClaims, err := sessiontoken.TokenClaimsSchema{
-		Email:   email,
-		Session: session,
+	expClaims, err := sessiontoken.AccessClaimsSchema{
+		Email: email,
 	}.ToInterface()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when making mock data", err)

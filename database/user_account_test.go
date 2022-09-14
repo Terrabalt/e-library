@@ -92,7 +92,7 @@ func TestSuccessfulLogin(t *testing.T) {
 	err = loginStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	err = loginRefreshStmt.Prepare(ctx, d)
+	err = addRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 	id, err := db.Login(ctx, expEmail, expPassword, time.Duration(48)*time.Hour)
 	assert.Nil(t, err, "unexpected error in a successful login test")
@@ -219,7 +219,7 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	err = loginGoogleStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	err = loginRefreshStmt.Prepare(ctx, d)
+	err = addRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
 	id, err := db.LoginGoogle(ctx, expEmail, expGID, time.Duration(48)*time.Hour)

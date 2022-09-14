@@ -7,13 +7,14 @@ import (
 )
 
 func Validator(ctx context.Context, t jwt.Token) error {
-	var cs TokenClaimsSchema
 	m, err := t.AsMap(ctx)
 	if err != nil {
 		return err
 	}
-	if err := cs.StrictFromInterface(m); err != nil {
+
+	var cs AccessClaimsSchema
+	if err := cs.FromInterface(m); err != nil {
 		return err
 	}
-	return nil
+	return cs.CheckMalform()
 }

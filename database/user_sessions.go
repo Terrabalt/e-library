@@ -11,40 +11,84 @@ type UserSessionInterface interface {
 	CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (isValidSession bool, err error)
 }
 
-var isValidSessionQuery = dbStatement{
+var getRefreshStmt = dbStatement{
 	nil, `
 	SELECT
-		EXISTS(
-			SELECT
-			1
-			FROM
-				user_session
-			WHERE
-				user_id = $1
-				AND session_token = $2
-				AND expires_in >= $3
-		) AS session_valid;`,
+		token_family, exhausted, expires_in
+	FROM
+		user_session
+	WHERE
+		user_id = $1
+		AND refresh_token = $2;`,
+}
+var exhaustRefreshStmt = dbStatement{
+	nil, `
+	UPDATE user_session
+	SET
+		exhausted = 'false'
+	WHERE
+		user_id = $1
+		AND refresh_token = $2`,
+}
+var addRefreshStmt = dbStatement{
+	nil, `
+	INSERT INTO user_session (
+		user_id, refresh_token, expires_in
+	)
+	VALUES
+		($1, $2, $3)`,
+}
+
+var deleteExpiredRefreshStmt = dbStatement{
+	nil, `
+	DELETE FROM
+		user_session
+	WHERE
+		expires_in <= $1;`,
 }
 
 func init() {
 	prepareStatements = append(prepareStatements,
-		&isValidSessionQuery,
+		&getRefreshStmt,
+		&exhaustRefreshStmt,
+		&addRefreshStmt,
+		&deleteExpiredRefreshStmt,
 	)
 }
 
 var ErrSessionInvalid = errors.New("")
 
 func (db DBInstance) CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (isSessionValid bool, err error) {
-	row := isValidSessionQuery.Statement.QueryRowContext(ctx, userID, sessionToken, currTime)
-	if err = row.Scan(&isSessionValid); err != nil {
+	tx, err := db.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	row := tx.Stmt(getRefreshStmt.Statement).QueryRowContext(ctx, userID, sessionToken, currTime)
+	var s string
+	var exhausted bool
+	var expiresIn time.Time
+
+	if err = row.Scan(&s, &exhausted, &expiresIn); err != nil {
 		if err == sql.ErrNoRows {
 			return false, ErrSessionInvalid
 		}
 		return false, err
 	}
 
-	if !isSessionValid {
+	if exhausted || expiresIn.Before(time.Now()) {
 		err = ErrSessionInvalid
 	}
+
+	tx.Commit()
 	return
+}
+
+func (db DBInstance) DeleteExpiredSession(ctx context.Context, currTime time.Time) (deleted int64, err error) {
+	result, err := deleteExpiredRefreshStmt.Statement.ExecContext(ctx, currTime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

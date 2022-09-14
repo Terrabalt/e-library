@@ -35,14 +35,6 @@ var loginGoogleStmt = dbStatement{
 	WHERE 
 		email = $1`,
 }
-var loginRefreshStmt = dbStatement{
-	nil, `
-	INSERT INTO user_session (
-		user_id, session_token, expires_in
-	)
-	VALUES
-		($1, $2, $3)`,
-}
 
 var registerSearchStmt = dbStatement{
 	nil, `
@@ -116,7 +108,6 @@ func init() {
 	prepareStatements = append(prepareStatements,
 		&loginStmt,
 		&loginGoogleStmt,
-		&loginRefreshStmt,
 		&registerSearchStmt,
 		&registerSearchGoogleStmt,
 		&registerStmt,
@@ -170,7 +161,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -223,7 +214,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
