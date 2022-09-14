@@ -45,7 +45,7 @@ func LoginPost(
 			return
 		}
 
-		_, err := db.Login(ctx, data.Email, data.Password, sessionLength)
+		session, err := db.Login(ctx, data.Email, data.Password, sessionLength)
 		if err != nil {
 			switch err {
 			case database.ErrAccountNotActive:
@@ -59,7 +59,7 @@ func LoginPost(
 			return
 		}
 
-		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+		aT, accessTokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
 			sessiontoken.AccessClaimsSchema{
 				Email: data.Email,
@@ -72,11 +72,20 @@ func LoginPost(
 			return
 		}
 
-		token := tokenResponse{
-			Token:     tokenString,
+		_, refreshTokenString, err := sessiontoken.CreateNewRefreshToken(
+			sessionAuth,
+			sessiontoken.RefreshClaimsSchema{
+				Email:   data.Email,
+				Session: session,
+			},
+			sessionLength,
+		)
+
+		render.Render(w, r, &tokenResponse{
+			Session:   accessTokenString,
+			Refresh:   refreshTokenString,
 			Scheme:    "Bearer",
-			ExpiresAt: t.Expiration().Format(time.RFC3339),
-		}
-		render.Render(w, r, &token)
+			ExpiresAt: aT.Expiration().Format(time.RFC3339),
+		})
 	}
 }

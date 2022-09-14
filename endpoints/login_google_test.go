@@ -49,13 +49,24 @@ func TestSuccessfulLoginGoogle(t *testing.T) {
 	resp := &tokenResponse{}
 	assert.Equal(t, expCode, w.Code, "A successful Google-Login didn't return the proper response code")
 	if assert.Nil(t, json.NewDecoder(w.Body).Decode(resp), "A successful Google-Login didn't return a valid tokenResponse object") {
-		token, err := jwtauth.VerifyToken(tokenAuth, resp.Token)
+		sessionToken, err := jwtauth.VerifyToken(tokenAuth, resp.Session)
 		assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
 
-		tokenMap, err := token.AsMap(context.Background())
+		sessionTokenMap, err := sessionToken.AsMap(context.Background())
 		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
 			var claims sessiontoken.AccessClaimsSchema
-			err := claims.FromInterface(tokenMap)
+			err := claims.FromInterface(sessionTokenMap)
+			if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+				assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
+			}
+		}
+		refreshToken, err := jwtauth.VerifyToken(tokenAuth, resp.Refresh)
+		assert.NoError(t, err, "A successful Google-Login didn't return a valid token")
+
+		refreshTokenMap, err := refreshToken.AsMap(context.Background())
+		if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
+			var claims sessiontoken.AccessClaimsSchema
+			err := claims.FromInterface(refreshTokenMap)
 			if assert.NoErrorf(t, err, "an error '%s' was not expected when getting returned token's schema") {
 				assert.Equal(t, expClaims, claims, "A successful Post-Login didn't return expected token schema")
 			}
