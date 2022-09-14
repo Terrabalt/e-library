@@ -73,6 +73,10 @@ func main() {
 		log.Panic().Err(err).Msg("Error initializing database")
 	}
 	defer db.CloseDB()
+	stopDBJobs := db.SetConcurrentRoutineJobs()
+	defer func() {
+		stopDBJobs <- true
+	}()
 
 	gValidator, err := googlehelper.NewGValidator(context.Background())
 	if err != nil {

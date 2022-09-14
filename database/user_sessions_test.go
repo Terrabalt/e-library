@@ -14,6 +14,8 @@ import (
 const expSessionToken = "abcdefgh"
 const expTokenFamily = "aassdfdf"
 
+var expDur = time.Duration(10) * time.Hour
+
 func TestSuccessfulCheckSession(t *testing.T) {
 	ctx := context.Background()
 
@@ -39,7 +41,7 @@ func TestSuccessfulCheckSession(t *testing.T) {
 	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)
+	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime, expDur)
 	if assert.Nil(t, err, "unexpected error in a successful get new books test") {
 		assert.Equal(t, expOut, out, "function should've returned a list of new books")
 	}
@@ -71,7 +73,7 @@ func TestFailedCheckSession(t *testing.T) {
 	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)
+	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime, expDur)
 	if assert.Equal(t, ErrSessionInvalid, err, "unexpected error in a successful get new books test") {
 		assert.Equal(t, expOut, out, "function should've returned a list of new books")
 	}
@@ -85,7 +87,7 @@ func TestFailedCheckSession(t *testing.T) {
 		WillReturnRows(rows).
 		RowsWillBeClosed()
 
-	out, err = db.CheckSession(ctx, expEmail, expSessionToken, expTime)
+	out, err = db.CheckSession(ctx, expEmail, expSessionToken, expTime, expDur)
 	if assert.Equal(t, ErrSessionInvalid, err, "unexpected error in a successful get new books test") {
 		assert.Equal(t, expOut, out, "function should've returned a list of new books")
 	}
@@ -114,7 +116,7 @@ func TestErrorCheckSession(t *testing.T) {
 	err = getRefreshStmt.Prepare(ctx, d)
 	require.NoErrorf(t, err, "an error '%s' was not expected when preparing a stub database connection", err)
 
-	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime)
+	out, err := db.CheckSession(ctx, expEmail, expSessionToken, expTime, expDur)
 	if assert.Equal(t, row, err, "unexpected error in a successful get new books test") {
 		assert.Equal(t, expOut, out, "function should've returned a list of new books")
 	}

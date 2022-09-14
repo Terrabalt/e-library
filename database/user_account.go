@@ -11,8 +11,8 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
+	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error)
+	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 }
@@ -123,7 +123,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -157,7 +157,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
@@ -176,7 +176,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	return
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -210,7 +210,7 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
