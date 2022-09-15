@@ -70,7 +70,7 @@ func init() {
 
 var ErrSessionNotFound = errors.New("")
 
-func (db *DBInstance) GetSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (tokenFamily string, exhausted bool, expiresIn *time.Time, err error) {
+func (db DBInstance) GetSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (tokenFamily string, exhausted bool, expiresIn *time.Time, err error) {
 	if err = getRefreshStmt.Statement.QueryRowContext(ctx, userID, sessionToken, currTime).Scan(&tokenFamily, &exhausted, &expiresIn); err != nil {
 		if err == sql.ErrNoRows {
 			return "", false, nil, ErrSessionNotFound
