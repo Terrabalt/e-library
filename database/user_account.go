@@ -104,6 +104,15 @@ var refreshActivationStmt = dbStatement{
 		email = $4`,
 }
 
+var deleteExpiredAccountStmt = dbStatement{
+	nil, `
+	DELETE FROM
+		user_account
+	WHERE
+		NOT activated
+		AND expires_in <= $1;`,
+}
+
 func init() {
 	prepareStatements = append(prepareStatements,
 		&loginStmt,
@@ -345,4 +354,12 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string, durati
 		return "", nil, ErrAccountNotFound
 	}
 	return
+}
+
+func (db DBInstance) DeleteExpiredAccount(ctx context.Context, currTime time.Time) (deleted int64, err error) {
+	result, err := deleteExpiredAccountStmt.Statement.ExecContext(ctx, currTime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

@@ -32,9 +32,10 @@ type config struct {
 }
 
 type loginLengths struct {
-	TokenLength      time.Duration `env:"TOKEN_DURATION"`
-	SessionLength    time.Duration `env:"SESSION_DURATION"`
-	ActivationLength time.Duration `env:"ACTIVATION_DURATION"`
+	TokenLength           time.Duration `env:"TOKEN_DURATION"`
+	SessionLength         time.Duration `env:"SESSION_DURATION"`
+	ActivationLength      time.Duration `env:"ACTIVATION_DURATION"`
+	DatabaseCleanupLength time.Duration `env:"DB_CLEANUP_DURATION"`
 }
 
 func main() {
@@ -73,7 +74,7 @@ func main() {
 		log.Panic().Err(err).Msg("Error initializing database")
 	}
 	defer db.CloseDB()
-	stopDBJobs := db.SetConcurrentRoutineJobs()
+	stopDBJobs := db.SetConcurrentRoutineJobs(conf.LoginLengths.DatabaseCleanupLength)
 	defer func() {
 		stopDBJobs <- true
 	}()
