@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -52,12 +53,44 @@ func RefreshToken(
 		var claims sessiontoken.RefreshClaimsSchema
 		if err := claims.FromToken(ctx, currToken); err != nil {
 			log.Debug().Err(err).Msg("")
+			render.Render(w, r, UnauthorizedRequestError(errors.New("")))
+			return
 		}
 
-		newSession, err := db.CheckSession(ctx, claims.Email, claims.Session, time.Now(), sessionLength)
+		currTime := time.Now()
+		tokenFamily, exhausted, expiresIn, err := db.GetSession(ctx, claims.Email, claims.Session, currTime)
 		if err != nil {
-			log.Debug().Err(err).Msg("")
+			if err == database.ErrSessionNotFound {
+				log.Debug().Msg("")
+				render.Render(w, r, UnauthorizedRequestError(errors.New("")))
+				return
+			}
+			log.Error().Err(err).Msg("")
+			render.Render(w, r, InternalServerError())
+			return
+		}
+
+		if expiresIn.Before(currTime) {
+			log.Debug().Msg("")
 			render.Render(w, r, UnauthorizedRequestError(errors.New("")))
+			return
+		}
+		if exhausted {
+			db.InvaildateSession(ctx, claims.Email, claims.Session)
+			log.Debug().Msg("")
+			render.Render(w, r, UnauthorizedRequestError(errors.New("")))
+			return
+		}
+
+		newSession, err := uuid.NewRandom()
+		if err != nil {
+			log.Error().Err(err).Msg("")
+			render.Render(w, r, InternalServerError())
+			return
+		}
+		if err := db.AddNewSession(ctx, claims.Email, newSession.String(), tokenFamily, currTime.Add(sessionLength)); err != nil {
+			log.Error().Err(err).Msg("")
+			render.Render(w, r, InternalServerError())
 			return
 		}
 
@@ -78,7 +111,7 @@ func RefreshToken(
 			sessionAuth,
 			sessiontoken.RefreshClaimsSchema{
 				Email:   claims.Email,
-				Session: newSession,
+				Session: newSession.String(),
 			},
 			sessionLength,
 		)

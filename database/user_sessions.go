@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type UserSessionInterface interface {
-	CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time, sessionLength time.Duration) (newRefresh string, err error)
+	GetSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (tokenFamily string, exhausted bool, expiresIn *time.Time, err error)
+	AddNewSession(ctx context.Context, userID string, refreshToken string, tokenFamily string, expiresIn time.Time) error
+	InvaildateSession(ctx context.Context, userID string, tokenFamily string) error
 }
 
 var getRefreshStmt = dbStatement{
@@ -68,61 +68,38 @@ func init() {
 	)
 }
 
-var ErrSessionInvalid = errors.New("")
+var ErrSessionNotFound = errors.New("")
 
-func (db DBInstance) CheckSession(ctx context.Context, userID string, sessionToken string, currTime time.Time, sessionLength time.Duration) (newRefreshToken string, err error) {
-	tx, err := db.Begin()
+func (db *DBInstance) GetSession(ctx context.Context, userID string, sessionToken string, currTime time.Time) (tokenFamily string, exhausted bool, expiresIn *time.Time, err error) {
+	if err = getRefreshStmt.Statement.QueryRowContext(ctx, userID, sessionToken, currTime).Scan(&tokenFamily, &exhausted, &expiresIn); err != nil {
+		if err == sql.ErrNoRows {
+			return "", false, nil, ErrSessionNotFound
+		}
+		return "", false, nil, err
+	}
+	return
+}
+
+func (db DBInstance) AddNewSession(ctx context.Context, userID string, refreshToken string, tokenFamily string, expiresIn time.Time) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer tx.Rollback()
 
-	row := tx.StmtContext(ctx, getRefreshStmt.Statement).QueryRowContext(ctx, userID, sessionToken, currTime)
-	var tokenFamily string
-	var exhausted bool
-	var expiresIn time.Time
-
-	if err = row.Scan(&tokenFamily, &exhausted, &expiresIn); err != nil {
-		if err == sql.ErrNoRows {
-			return "", ErrSessionInvalid
-		}
-		return "", err
+	if _, err := tx.StmtContext(ctx, addRefreshStmt.Statement).Exec(userID, refreshToken, tokenFamily, expiresIn); err != nil {
+		return err
+	}
+	if _, err := exhaustRefreshStmt.Statement.Exec(userID, refreshToken); err != nil {
+		return err
 	}
 
-	if expiresIn.Before(time.Now()) {
-		return "", ErrSessionInvalid
-	}
+	return tx.Commit()
+}
 
-	if exhausted {
-		_, err := tx.StmtContext(ctx, invalidateTokenFamilyStmt.Statement).ExecContext(ctx, userID, tokenFamily)
-		if err != nil {
-			return "", err
-		}
-		if err := tx.Commit(); err != nil {
-			return "", err
-		}
-		return "", ErrSessionInvalid
-	}
-
-	newRefresh, err := uuid.NewRandom()
-	if err != nil {
-		return "", err
-	}
-	expiresIn = time.Now().Add(sessionLength)
-	if _, err := tx.StmtContext(ctx, addRefreshStmt.Statement).
-		Exec(userID, newRefresh, tokenFamily, expiresIn); err != nil {
-		return "", err
-	}
-
-	if _, err := tx.StmtContext(ctx, exhaustRefreshStmt.Statement).
-		Exec(userID, sessionToken); err != nil {
-		return "", err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return "", err
-	}
-	return newRefresh.String(), nil
+func (db DBInstance) InvaildateSession(ctx context.Context, userID string, tokenFamily string) error {
+	_, err := invalidateTokenFamilyStmt.Statement.Exec(userID, tokenFamily)
+	return err
 }
 
 func (db DBInstance) DeleteExpiredSession(ctx context.Context, currTime time.Time) (deleted int64, err error) {
