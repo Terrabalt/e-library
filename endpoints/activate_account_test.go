@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) ActivateAccount(ctx context.Context, email string, activationToken string) error {
-	args := db.Called(email, activationToken)
+func (db dBMock) ActivateAccount(ctx context.Context, email string) error {
+	args := db.Called(email)
 	return args.Error(0)
 }
 

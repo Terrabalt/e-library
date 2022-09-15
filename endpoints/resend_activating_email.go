@@ -38,32 +38,33 @@ func ResendActivationEmail(
 			return
 		}
 
+		activated, _, _, err := db.GetActivationData(ctx, accountEmail)
+		if err == database.ErrAccountNotFound {
+			log.Debug().Err(err).Msg("Resending activating email on an account that couldn't be found")
+			render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
+			return
+		}
+		if activated {
+			log.Debug().Err(err).Msg("Resending activating email on an account that's already activated")
+			render.Render(w, r, UnauthorizedRequestError(errAccountAlreadyActivated))
+			return
+		}
+
 		activationToken, err := uuid.NewRandom()
 		if err != nil {
 			log.Error().Err(err).Msg("Trying to create random uuid returned an error")
 			render.Render(w, r, InternalServerError())
 			return
 		}
+		expiresIn := time.Now().Add(activationDuration)
 
-		validUntil := time.Now().Add(activationDuration)
-		if err := db.RefreshActivation(ctx, accountEmail, activationToken.String(), validUntil); err != nil {
-			if err == database.ErrAccountNotFound {
-				log.Debug().Err(err).Msg("Resending activating email on an account that couldn't be found")
-				render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
-				return
-			}
-			if err == database.ErrAccountAlreadyActivated {
-				log.Debug().Err(err).Msg("Resending activating email on an account that's already activated")
-				render.Render(w, r, UnauthorizedRequestError(errAccountAlreadyActivated))
-				return
-			}
-			log.Error().Err(err).Msg("Database error while trying to resend activating email")
+		if err := db.RefreshActivation(ctx, accountEmail, activationToken.String(), expiresIn); err != nil {
+			log.Error().Err(err).Msg("Database error while trying to refresh activation token")
 			render.Render(w, r, InternalServerError())
 			return
 		}
-
-		if err := email.SendActivationEmail(accountEmail, activationToken.String(), validUntil); err != nil {
-			log.Debug().Err(err).Msg("Trying to resend activating email")
+		if err := email.SendActivationEmail(accountEmail, activationToken.String(), expiresIn); err != nil {
+			log.Debug().Err(err).Msg("Trying to resend activating email failed")
 			render.Render(w, r, InternalServerError())
 			return
 		}

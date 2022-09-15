@@ -12,6 +12,11 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func (db dBMock) GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error) {
+	args := db.Called(email)
+
+	return args.Bool(0), args.String(1), args.Get(2).(*time.Time), args.Error(3)
+}
 func (db dBMock) RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error {
 	args := db.Called(email, activationToken, validUntil)
 

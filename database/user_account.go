@@ -15,8 +15,9 @@ type UserAccountInterface interface {
 	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
-	RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error
-	ActivateAccount(ctx context.Context, email string, activationToken string) error
+	GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error)
+	RefreshActivation(ctx context.Context, email string, activationToken string, expiresIn time.Time) error
+	ActivateAccount(ctx context.Context, email string) error
 }
 
 var loginStmt = dbStatement{
@@ -121,8 +122,7 @@ var checkActivationTokenStmt = dbStatement{
 	FROM 
 		user_account 
 	WHERE 
-		email = $1
-	FOR UPDATE`,
+		email = $1`,
 }
 
 var refreshActivationStmt = dbStatement{
@@ -359,69 +359,27 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	return
 }
 
-func (db DBInstance) RefreshActivation(ctx context.Context, email string, activationToken string, validUntil time.Time) error {
-	var activated bool
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	row := tx.StmtContext(ctx, checkActivationStmt.Statement).QueryRowContext(ctx, email)
-	if err := row.Scan(&activated); err != nil {
-		if err == sql.ErrNoRows {
-			return ErrAccountNotFound
-		}
-		return err
-	}
-
-	if activated {
-		return ErrAccountAlreadyActivated
-	}
-
-	if _, err = tx.StmtContext(ctx, refreshActivationStmt.Statement).ExecContext(ctx, false, activationToken, validUntil, email); err != nil {
-		return err
-	}
-	if tx.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
-
-var ErrAccountAlreadyActivated = errors.New("account is already activated")
-var ErrAccountActivationDataMalformed = errors.New("account is not active yet token or expires_in rows missing")
-var ErrAccountActivationFailed = errors.New("account activation failed")
-
-func (db DBInstance) ActivateAccount(ctx context.Context, email string, activationToken string) error {
-	var activated bool
+func (db DBInstance) GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error) {
 	var token sql.NullString
 	var exp sql.NullTime
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	row := tx.StmtContext(ctx, checkActivationTokenStmt.Statement).QueryRowContext(ctx, email)
-	if err := row.Scan(&activated, &token, &exp); err != nil {
+	if err := checkActivationTokenStmt.Statement.QueryRowContext(ctx, email).
+		Scan(&activated, &token, &exp); err != nil {
 		if err == sql.ErrNoRows {
-			return ErrAccountNotFound
+			return false, "", nil, ErrAccountNotFound
 		}
-		return err
+		return false, "", nil, err
 	}
+	activationToken = token.String
+	expiresIn = &exp.Time
+	return
+}
 
-	if activated {
-		return ErrAccountAlreadyActivated
-	}
-	if !token.Valid || !exp.Valid {
-		return ErrAccountActivationDataMalformed
-	}
-	if activationToken != token.String || exp.Time.Before(time.Now()) {
-		return ErrAccountActivationFailed
-	}
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, activationToken string, expiresIn time.Time) error {
+	_, err := refreshActivationStmt.Statement.ExecContext(ctx, false, activationToken, expiresIn, email)
+	return err
+}
 
-	if _, err := tx.StmtContext(ctx, refreshActivationStmt.Statement).ExecContext(ctx, true, nil, nil, email); err != nil {
-		return err
-	}
-	return tx.Commit()
+func (db DBInstance) ActivateAccount(ctx context.Context, email string) error {
+	_, err := refreshActivationStmt.Statement.ExecContext(ctx, true, nil, nil, email)
+	return err
 }

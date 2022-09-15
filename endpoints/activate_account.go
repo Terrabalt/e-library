@@ -4,6 +4,7 @@ import (
 	"errors"
 	"ic-rhadi/e_library/database"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
@@ -38,22 +39,29 @@ func ActivateAccount(
 			return
 		}
 
-		if err := db.ActivateAccount(ctx, accountEmail, activationToken); err != nil {
-			if err == database.ErrAccountNotFound {
-				log.Debug().Err(err).Msg("trying to activate an account that couldn't be found")
-				render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
-				return
-			}
-			if err == database.ErrAccountAlreadyActivated {
-				log.Debug().Err(err).Msg("trying to activate account that has already been activated")
-				render.Render(w, r, UnauthorizedRequestError(errAccountAlreadyActivated))
-				return
-			}
-			if err == database.ErrAccountActivationFailed {
-				log.Debug().Err(err).Msg("trying to activate account failed")
-				render.Render(w, r, UnauthorizedRequestError(errAccountActivationFailed))
-				return
-			}
+		activated, token, expiresIn, err := db.GetActivationData(ctx, accountEmail)
+		if err == database.ErrAccountNotFound {
+			log.Debug().Err(err).Msg("Resending activating email on an account that couldn't be found")
+			render.Render(w, r, UnauthorizedRequestError(errAccountNotFound))
+			return
+		}
+		if activated {
+			log.Debug().Err(err).Msg("Resending activating email on an account that's already activated")
+			render.Render(w, r, UnauthorizedRequestError(errAccountAlreadyActivated))
+			return
+		}
+		if activationToken == "" || expiresIn == nil {
+			log.Error().Str("account", accountEmail).Msg("trying to activate account returned an unexpected error")
+			render.Render(w, r, InternalServerError())
+			return
+		}
+		if activationToken != token || expiresIn.Before(time.Now()) {
+			log.Debug().Err(err).Msg("trying to activate account failed")
+			render.Render(w, r, UnauthorizedRequestError(errAccountActivationFailed))
+			return
+		}
+
+		if err := db.ActivateAccount(ctx, accountEmail); err != nil {
 			log.Error().Err(err).Msg("trying to activate account returned an unexpected error")
 			render.Render(w, r, InternalServerError())
 			return
