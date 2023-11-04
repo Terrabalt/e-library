@@ -11,8 +11,8 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
+	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error)
+	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error)
@@ -37,14 +37,6 @@ var loginGoogleStmt = dbStatement{
 		user_account 
 	WHERE 
 		email = $1`,
-}
-var loginRefreshStmt = dbStatement{
-	nil, `
-	INSERT INTO user_session (
-		user_id, session_token, expires_in
-	)
-	VALUES
-		($1, $2, $3)`,
 }
 
 var registerSearchStmt = dbStatement{
@@ -136,11 +128,19 @@ var refreshActivationStmt = dbStatement{
 		email = $4`,
 }
 
+var deleteExpiredAccountStmt = dbStatement{
+	nil, `
+	DELETE FROM
+		user_account
+	WHERE
+		NOT activated
+		AND expires_in <= $1;`,
+}
+
 func init() {
 	prepareStatements = append(prepareStatements,
 		&loginStmt,
 		&loginGoogleStmt,
-		&loginRefreshStmt,
 		&registerSearchStmt,
 		&registerSearchGoogleStmt,
 		&registerStmt,
@@ -158,7 +158,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -192,11 +192,11 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -211,7 +211,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	return
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -245,11 +245,11 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -382,4 +382,12 @@ func (db DBInstance) RefreshActivation(ctx context.Context, email string, activa
 func (db DBInstance) ActivateAccount(ctx context.Context, email string) error {
 	_, err := refreshActivationStmt.Statement.ExecContext(ctx, true, nil, nil, email)
 	return err
+}
+
+func (db DBInstance) DeleteExpiredAccount(ctx context.Context, currTime time.Time) (deleted int64, err error) {
+	result, err := deleteExpiredAccountStmt.Statement.ExecContext(ctx, currTime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

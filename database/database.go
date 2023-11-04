@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,7 @@ type DB interface {
 	UserSessionInterface
 	BookInterface
 	InitDB(ctx context.Context) error
+	SetConcurrentRoutineJobs(timerLength time.Duration) chan<- bool
 	CloseDB()
 }
 
@@ -86,6 +88,31 @@ func (db DBInstance) InitDB(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (db DBInstance) SetConcurrentRoutineJobs(timerLength time.Duration) chan<- bool {
+	ticker := time.NewTicker(timerLength)
+	quit := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				deleted, err := db.DeleteExpiredSession(context.Background(), time.Now())
+				if err != nil {
+					log.Error().Err(err).Msg("Deleting expired sessions returned an error")
+				}
+				log.Info().Int64("deleted rows", deleted).Msg("Expired sessions deleted")
+				deleted, err = db.DeleteExpiredAccount(context.Background(), time.Now())
+				if err != nil {
+					log.Error().Err(err).Msg("Deleting expired sessions returned an error")
+				}
+				log.Info().Int64("deleted rows", deleted).Msg("Expired sessions deleted")
+			case <-quit:
+				return
+			}
+		}
+	}()
+	return quit
 }
 
 func (db DBInstance) CloseDB() {

@@ -32,9 +32,10 @@ type config struct {
 }
 
 type loginLengths struct {
-	TokenLength      time.Duration `env:"TOKEN_DURATION"`
-	SessionLength    time.Duration `env:"SESSION_DURATION"`
-	ActivationLength time.Duration `env:"ACTIVATION_DURATION"`
+	TokenLength           time.Duration `env:"TOKEN_DURATION"`
+	SessionLength         time.Duration `env:"SESSION_DURATION"`
+	ActivationLength      time.Duration `env:"ACTIVATION_DURATION"`
+	DatabaseCleanupLength time.Duration `env:"DB_CLEANUP_DURATION"`
 }
 
 func main() {
@@ -73,6 +74,10 @@ func main() {
 		log.Panic().Err(err).Msg("Error initializing database")
 	}
 	defer db.CloseDB()
+	stopDBJobs := db.SetConcurrentRoutineJobs(conf.LoginLengths.DatabaseCleanupLength)
+	defer func() {
+		stopDBJobs <- true
+	}()
 
 	gValidator, err := googlehelper.NewGValidator(context.Background())
 	if err != nil {
@@ -91,6 +96,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", endpoints.LoginPost(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/google", endpoints.LoginGoogle(db, sessionAuth, gValidator, sessionLength, tokenLength))
+		r.Post("/refresh", endpoints.RefreshToken(db, sessionAuth, sessionLength, tokenLength))
 		r.Post("/register", endpoints.RegisterPost(db, email, conf.LoginLengths.ActivationLength))
 		r.Post("/register/google", endpoints.RegisterGoogle(db, gValidator, email, conf.LoginLengths.ActivationLength))
 		r.Get("/resend", endpoints.ResendActivationEmail(db, email, conf.LoginLengths.ActivationLength))
