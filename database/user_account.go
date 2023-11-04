@@ -11,10 +11,13 @@ import (
 )
 
 type UserAccountInterface interface {
-	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error)
-	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error)
+	Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error)
+	LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error)
 	Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
 	RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error)
+	GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error)
+	RefreshActivation(ctx context.Context, email string, activationToken string, expiresIn time.Time) error
+	ActivateAccount(ctx context.Context, email string) error
 }
 
 var loginStmt = dbStatement{
@@ -35,15 +38,27 @@ var loginGoogleStmt = dbStatement{
 	WHERE 
 		email = $1`,
 }
-var loginRefreshStmt = dbStatement{
-	nil, `
-	INSERT INTO user_session (
-		user_id, session_token, expires_in
-	)
-	VALUES
-		($1, $2, $3)`,
-}
 
+var registerSearchStmt = dbStatement{
+	nil, `
+	SELECT 
+		password, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
+var registerSearchGoogleStmt = dbStatement{
+	nil, `
+	SELECT 
+		g_id, activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
 var registerStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -52,6 +67,16 @@ var registerStmt = dbStatement{
 	VALUES
 		($1, $2, $3, $4, $5)`,
 }
+var registerAddStmt = dbStatement{
+	nil, `
+	UPDATE user_account
+	SET
+		password = $2,
+		activation_token = $3,
+		expires_in = $4
+	WHERE
+		email = $1`,
+}
 var registerGoogleStmt = dbStatement{
 	nil, `
 	INSERT INTO user_account (
@@ -59,6 +84,37 @@ var registerGoogleStmt = dbStatement{
 	)
 	VALUES
 		($1, $2, $3, $4, $5)`,
+}
+var registerAddGoogleStmt = dbStatement{
+	nil, `
+	UPDATE user_account
+	SET
+		g_id = $2,
+		activation_token = $3,
+		expires_in = $4
+	WHERE
+		email = $1`,
+}
+
+var checkActivationStmt = dbStatement{
+	nil, `
+	SELECT 
+		activated
+	FROM 
+		user_account 
+	WHERE 
+		email = $1
+	FOR UPDATE`,
+}
+
+var checkActivationTokenStmt = dbStatement{
+	nil, `
+	SELECT 
+		activated, activation_token, expires_in
+	FROM 
+		user_account 
+	WHERE 
+		email = $1`,
 }
 
 var refreshActivationStmt = dbStatement{
@@ -72,13 +128,27 @@ var refreshActivationStmt = dbStatement{
 		email = $4`,
 }
 
+var deleteExpiredAccountStmt = dbStatement{
+	nil, `
+	DELETE FROM
+		user_account
+	WHERE
+		NOT activated
+		AND expires_in <= $1;`,
+}
+
 func init() {
 	prepareStatements = append(prepareStatements,
 		&loginStmt,
 		&loginGoogleStmt,
-		&loginRefreshStmt,
+		&registerSearchStmt,
+		&registerSearchGoogleStmt,
 		&registerStmt,
+		&registerAddStmt,
 		&registerGoogleStmt,
+		&registerAddGoogleStmt,
+		&checkActivationStmt,
+		&checkActivationTokenStmt,
 		&refreshActivationStmt,
 	)
 }
@@ -88,7 +158,7 @@ var ErrAccountNotFound error = errors.New("account not found")
 var ErrWrongID error = errors.New("google account id invalid")
 var ErrWrongPass error = errors.New("account password invalid")
 
-func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) Login(ctx context.Context, email string, pass string, sessionLength time.Duration) (refreshID string, err error) {
 	var hash sql.NullString
 	var activated bool
 
@@ -122,11 +192,11 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -141,7 +211,7 @@ func (db DBInstance) Login(ctx context.Context, email string, pass string, sessi
 	return
 }
 
-func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (sessionID string, err error) {
+func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, sessionLength time.Duration) (refreshID string, err error) {
 	var gid sql.NullString
 	var activated bool
 
@@ -175,11 +245,11 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 	if err != nil {
 		return "", err
 	}
-	sessionID = randomUUID.String()
+	refreshID = randomUUID.String()
 	expiresIn := time.Now().Add(sessionLength)
 
 	if _, err := tx.
-		StmtContext(ctx, loginRefreshStmt.Statement).
+		StmtContext(ctx, addRefreshStmt.Statement).
 		ExecContext(ctx,
 			email,
 			randomUUID,
@@ -197,17 +267,15 @@ func (db DBInstance) LoginGoogle(ctx context.Context, email string, gID string, 
 var ErrAccountExisted error = errors.New("account already existed")
 
 func (db DBInstance) Register(ctx context.Context, email string, password string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	row := loginStmt.Statement.QueryRowContext(ctx, email)
-	var nullHash sql.NullString
-	var activated bool
-	err = row.Scan(&nullHash, &activated)
-	if err == nil {
-		if nullHash.Valid || !activated {
-			return "", nil, ErrAccountExisted
-		}
-	} else if err != sql.ErrNoRows {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
 		return "", nil, err
 	}
+	defer tx.Rollback()
+
+	row := tx.StmtContext(ctx, registerSearchStmt.Statement).QueryRowContext(ctx, email)
+	var nullHash sql.NullString
+	var activated bool
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -223,25 +291,40 @@ func (db DBInstance) Register(ctx context.Context, email string, password string
 	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
-	_, err = registerStmt.Statement.ExecContext(ctx, email, hash, randomUUID, validUntil, name)
-	if err != nil {
+	err = row.Scan(&nullHash, &activated)
+	if err == nil {
+		if nullHash.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+		_, err = tx.StmtContext(ctx, registerAddStmt.Statement).ExecContext(ctx, email, hash, randomUUID, validUntil)
+		if err != nil {
+			return "", nil, err
+		}
+	} else if err != sql.ErrNoRows {
+		return "", nil, err
+	} else {
+		_, err = tx.StmtContext(ctx, registerStmt.Statement).ExecContext(ctx, email, hash, randomUUID, validUntil, name)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return "", nil, err
 	}
 	return
 }
 
 func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID string, name string, activationDuration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	row := loginGoogleStmt.Statement.QueryRowContext(ctx, email)
-	var nullGID sql.NullString
-	var activated bool
-	err = row.Scan(&nullGID, &activated)
-	if err == nil {
-		if nullGID.Valid || !activated {
-			return "", nil, ErrAccountExisted
-		}
-	} else if err != sql.ErrNoRows {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
 		return "", nil, err
 	}
+	defer tx.Rollback()
+
+	row := tx.StmtContext(ctx, registerSearchGoogleStmt.Statement).QueryRowContext(ctx, email)
+	var nullGID sql.NullString
+	var activated bool
 
 	randomUUID, err := uuid.NewRandom()
 	if err != nil {
@@ -252,33 +335,59 @@ func (db DBInstance) RegisterGoogle(ctx context.Context, email string, gID strin
 	v := time.Now().Add(activationDuration)
 	validUntil = &v
 
-	_, err = registerGoogleStmt.Statement.ExecContext(ctx, email, gID, randomUUID, validUntil, name)
-	if err != nil {
+	err = row.Scan(&nullGID, &activated)
+	if err == nil {
+		if nullGID.Valid || !activated {
+			return "", nil, ErrAccountExisted
+		}
+		_, err = tx.StmtContext(ctx, registerAddGoogleStmt.Statement).ExecContext(ctx, email, gID, randomUUID, validUntil)
+		if err != nil {
+			return "", nil, err
+		}
+	} else if err != sql.ErrNoRows {
 		return "", nil, err
+	} else {
+		_, err = tx.StmtContext(ctx, registerGoogleStmt.Statement).ExecContext(ctx, email, gID, randomUUID, validUntil, name)
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return "", nil, err
+	}
 	return
 }
 
-func (db DBInstance) RefreshActivation(ctx context.Context, email string, duration time.Duration) (activationToken string, validUntil *time.Time, err error) {
-	randomUUID, err := uuid.NewRandom()
-	if err != nil {
-		return "", nil, err
+func (db DBInstance) GetActivationData(ctx context.Context, email string) (activated bool, activationToken string, expiresIn *time.Time, err error) {
+	var token sql.NullString
+	var exp sql.NullTime
+	if err := checkActivationTokenStmt.Statement.QueryRowContext(ctx, email).
+		Scan(&activated, &token, &exp); err != nil {
+		if err == sql.ErrNoRows {
+			return false, "", nil, ErrAccountNotFound
+		}
+		return false, "", nil, err
 	}
-	activationToken = randomUUID.String()
-
-	v := time.Now().Add(duration)
-	validUntil = &v
-	res, err := refreshActivationStmt.Statement.ExecContext(ctx, false, randomUUID, *validUntil, email)
-	if err != nil {
-		return "", nil, err
-	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return "", nil, err
-	}
-	if rowsAffected == 0 {
-		return "", nil, ErrAccountNotFound
-	}
+	activationToken = token.String
+	expiresIn = &exp.Time
 	return
+}
+
+func (db DBInstance) RefreshActivation(ctx context.Context, email string, activationToken string, expiresIn time.Time) error {
+	_, err := refreshActivationStmt.Statement.ExecContext(ctx, false, activationToken, expiresIn, email)
+	return err
+}
+
+func (db DBInstance) ActivateAccount(ctx context.Context, email string) error {
+	_, err := refreshActivationStmt.Statement.ExecContext(ctx, true, nil, nil, email)
+	return err
+}
+
+func (db DBInstance) DeleteExpiredAccount(ctx context.Context, currTime time.Time) (deleted int64, err error) {
+	result, err := deleteExpiredAccountStmt.Statement.ExecContext(ctx, currTime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

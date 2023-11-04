@@ -22,7 +22,7 @@ func (db dBMock) GetNewBooks(ctx context.Context, accountID string) ([]database.
 }
 
 func TestSuccessfulListMoreNewBooks(t *testing.T) {
-	path := "/books/new/more"
+	path := "/books?criteria=new&page=0"
 
 	expDBBook := database.Book{
 		ID:      uuid.New(),
@@ -39,13 +39,13 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("GetNewBooks", expID.Account).
+	dbMock.On("GetNewBooksPaginated", 20, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := ListMoreNewBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -59,11 +59,11 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("GetNewBooks", expID.Account).
+	dbMock.On("GetNewBooksPaginated", 20, 0, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = ListMoreNewBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -77,15 +77,15 @@ func TestSuccessfulListMoreNewBooks(t *testing.T) {
 }
 
 func TestFailedListMoreNewBooks(t *testing.T) {
-	path := "/books/new/more"
+	path := "/books?criteria=new&page=0"
 
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := ListMoreNewBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
-	expResp, expCode := BadRequestError(ErrSessionTokenMissingOrInvalid).(*ErrorResponse).sentForm()
+	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
 
 	resp := &ErrorResponse{}
 	assert.Equal(t, expCode, w.Code, "A failed New-Books-List didn't return the proper response code")
@@ -94,11 +94,11 @@ func TestFailedListMoreNewBooks(t *testing.T) {
 	}
 	dbMock.AssertExpectations(t)
 
-	dbMock.On("GetNewBooks", expID.Account).
+	dbMock.On("GetNewBooksPaginated", 20, 0, expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = ListMoreNewBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode = InternalServerError().(*ErrorResponse).sentForm()

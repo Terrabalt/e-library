@@ -64,11 +64,10 @@ func LoginGoogle(
 			return
 		}
 
-		t, tokenString, err := sessiontoken.CreateNewSessionToken(
+		aT, accessTokenString, err := sessiontoken.CreateNewSessionToken(
 			sessionAuth,
-			sessiontoken.TokenClaimsSchema{
-				Email:   gClaims.Email,
-				Session: session,
+			sessiontoken.AccessClaimsSchema{
+				Email: gClaims.Email,
 			},
 			tokenLength,
 		)
@@ -78,11 +77,20 @@ func LoginGoogle(
 			return
 		}
 
-		token := tokenResponse{
-			Token:     tokenString,
+		_, refreshTokenString, err := sessiontoken.CreateNewRefreshToken(
+			sessionAuth,
+			sessiontoken.RefreshClaimsSchema{
+				Email:   gClaims.Email,
+				Session: session,
+			},
+			sessionLength,
+		)
+
+		render.Render(w, r, &tokenResponse{
+			Session:   accessTokenString,
+			Refresh:   refreshTokenString,
 			Scheme:    "Bearer",
-			ExpiresAt: t.Expiration().Format(time.RFC3339),
-		}
-		render.Render(w, r, &token)
+			ExpiresAt: aT.Expiration().Format(time.RFC3339),
+		})
 	}
 }

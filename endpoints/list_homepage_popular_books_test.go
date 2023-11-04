@@ -22,7 +22,7 @@ func (db dBMock) GetPopularBooksPaginated(ctx context.Context, limit int, offset
 }
 
 func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
-	path := "books/popular/homepage"
+	path := "/books?criteria=popularHomepage"
 
 	expDBBook := database.Book{
 		ID:      uuid.New(),
@@ -45,7 +45,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := HomepageListPopularBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -63,7 +63,7 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = HomepageListPopularBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -77,12 +77,12 @@ func TestSuccessfulHomepageListPopularBooks(t *testing.T) {
 }
 
 func TestFailedHomepageListPopularBooks(t *testing.T) {
-	path := "books/popular/homepage"
+	path := "/books?criteria=popularHomepage"
 
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := HomepageListPopularBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
@@ -98,7 +98,7 @@ func TestFailedHomepageListPopularBooks(t *testing.T) {
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = HomepageListPopularBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}

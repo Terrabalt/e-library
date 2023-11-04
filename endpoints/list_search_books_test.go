@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (db dBMock) SearchBooks(ctx context.Context, query string, accountID string) ([]database.Book, error) {
-	args := db.Called(query, accountID)
+func (db dBMock) SearchBooks(ctx context.Context, limit int, offset int, query string, accountID string) ([]database.Book, error) {
+	args := db.Called(limit, offset, query, accountID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -23,7 +23,7 @@ func (db dBMock) SearchBooks(ctx context.Context, query string, accountID string
 
 func TestSuccessfulSearchBooks(t *testing.T) {
 	expQuery := "potato"
-	path := "/books/search?query=" + expQuery
+	path := "/books?criteria=search&query=" + expQuery
 
 	expDBBook := database.Book{
 		ID:      uuid.New(),
@@ -40,13 +40,13 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 	}
 
 	dbMock := dBMock{&mock.Mock{}}
-	dbMock.On("SearchBooks", expQuery, expID.Account).
+	dbMock.On("SearchBooks", 20, 0, expQuery, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	expCode := http.StatusOK
 
 	w, r := mockRequest(t, path, nil, true)
-	handler := SearchBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp := BooksFromDatabase(expDBBooks)
@@ -60,11 +60,11 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 
 	expDBBooks = []database.Book{}
 
-	dbMock.On("SearchBooks", expQuery, expID.Account).
+	dbMock.On("SearchBooks", 20, 0, expQuery, expID.Account).
 		Return(expDBBooks, nil).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = SearchBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp = BooksFromDatabase(expDBBooks)
@@ -79,12 +79,12 @@ func TestSuccessfulSearchBooks(t *testing.T) {
 
 func TestFailedSearchBooks(t *testing.T) {
 	expQuery := "potato"
-	path := "/books/search?query=" + expQuery
+	path := "/books?criteria=search&query=" + expQuery
 
 	dbMock := dBMock{&mock.Mock{}}
 
 	w, r := mockRequest(t, path, nil, false)
-	handler := SearchBooks(dbMock)
+	handler := ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	expResp, expCode := InternalServerError().(*ErrorResponse).sentForm()
@@ -97,11 +97,11 @@ func TestFailedSearchBooks(t *testing.T) {
 	dbMock.AssertExpectations(t)
 
 	dbMock = dBMock{&mock.Mock{}}
-	dbMock.On("SearchBooks", expQuery, expID.Account).
+	dbMock.On("SearchBooks", 20, 0, expQuery, expID.Account).
 		Return(nil, sql.ErrConnDone).Once()
 
 	w, r = mockRequest(t, path, nil, true)
-	handler = SearchBooks(dbMock)
+	handler = ListBooks(dbMock)
 	handler.ServeHTTP(w, r)
 
 	resp = &ErrorResponse{}
